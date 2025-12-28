@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>LINE Talk Analysis - Statistical Edition</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --line-green: #06c755;
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --text-primary: #2d3436;
+            --text-secondary: #636e72;
+            --hover-shadow: 0 10px 20px rgba(0,0,0,0.08);
+        }
+        body {
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            padding-bottom: 60px;
+        }
+        
+        /* Header */
+        header {
+            background: var(--card-bg);
+            padding: 24px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+            border-bottom: 1px solid #eee;
+        }
+        h1 { font-size: 1.5rem; font-weight: 800; margin: 0; letter-spacing: -0.5px; color: var(--text-primary); }
+        
+        /* Cards */
+        .card-custom {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            margin-bottom: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+        }
+        .card-custom:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--hover-shadow);
+        }
+        .card-header-c {
+            padding: 20px 24px 10px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-body-c { padding: 10px 24px 24px; }
+
+        /* Stats Grid */
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        @media (min-width: 768px) {
+            .stat-grid { grid-template-columns: repeat(4, 1fr); }
+        }
+        .stat-item {
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+            transition: transform 0.2s;
+        }
+        .stat-item:hover { transform: scale(1.02); }
+        .stat-val { font-size: 1.8rem; font-weight: 800; color: var(--text-primary); line-height: 1.2; margin-bottom: 5px; }
+        .stat-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 600; text-transform: uppercase; }
+
+        /* Heatmap */
+        .heatmap-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 10px; }
+        .heatmap-table { width: 100%; min-width: 600px; border-collapse: separate; border-spacing: 3px; }
+        .heatmap-cell { height: 24px; border-radius: 4px; background: #f1f3f5; min-width: 15px; transition: background-color 0.3s; }
+        .heatmap-cell:hover { transform: scale(1.1); border: 1px solid rgba(0,0,0,0.1); }
+        .hm-hour { font-size: 0.65rem; text-align: center; color: #aaa; font-weight: normal; }
+        .hm-day { font-size: 0.75rem; font-weight: bold; width: 40px; color: var(--text-secondary); }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 3px dashed #d1d1d6;
+            border-radius: 20px;
+            padding: 60px 20px;
+            text-align: center;
+            background: #fff;
+            color: #aeaeb2;
+            transition: all 0.2s;
+            cursor: pointer;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--line-green); background: #f0fff4; color: var(--line-green); transform: scale(1.01); }
+
+        /* Tabs & Words */
+        .nav-pills-custom .nav-link {
+            border-radius: 50px;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            padding: 8px 20px;
+            background: #e9ecef;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+        .nav-pills-custom .nav-link:hover { background: #dee2e6; }
+        .nav-pills-custom .nav-link.active {
+            background-color: var(--line-green);
+            color: white;
+            box-shadow: 0 4px 10px rgba(6, 199, 85, 0.3);
+        }
+        .word-tag {
+            display: inline-block;
+            background: #f8f9fa;
+            border: 1px solid #eee;
+            padding: 6px 12px;
+            border-radius: 12px;
+            margin: 4px;
+            font-size: 0.85rem;
+            color: #333;
+            transition: all 0.2s;
+        }
+        .word-tag:hover { background: var(--line-green); color: white; border-color: var(--line-green); }
+        .rank-badge {
+            background: #2d3436; color: #fff; border-radius: 50%;
+            width: 18px; height: 18px; font-size: 10px;
+            display: inline-flex; justify-content: center; align-items: center; margin-right: 6px;
+        }
+
+        /* Detail Stats List */
+        .detail-stat-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 0; border-bottom: 1px solid #eee; font-size: 0.95rem;
+        }
+        .detail-stat-label { color: var(--text-secondary); }
+        .detail-stat-val { font-weight: bold; font-family: monospace; font-size: 1.1rem; }
+
+        #loading {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.92);
+            z-index: 9999; display: none; justify-content: center; align-items: center; flex-direction: column;
+            backdrop-filter: blur(5px);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner-border text-success mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+        <h4 class="fw-bold text-dark">解析中...</h4>
+        <p class="text-muted">ブラウザ内で安全に処理しています</p>
+    </div>
+
+    <header class="text-center">
+        <div class="container">
+            <h1>LINE Talk Analysis <span class="badge bg-primary align-middle" style="font-size: 0.4em;">STATISTICS</span></h1>
+            <div class="small text-muted mt-2">PC & Mobile Responsive / Statistical Precision</div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div id="inputArea" class="py-4">
+            <div class="drop-zone shadow-sm" id="dropZone">
+                <i class="bi bi-file-earmark-spreadsheet display-2 mb-3 d-block opacity-50"></i>
+                <h3 class="fw-bold mb-3">トーク履歴をアップロード</h3>
+                <p class="text-muted mb-4">テキストファイル (.txt) をここにドロップ<br>またはクリックして選択</p>
+                <input type="file" id="fileInput" accept=".txt" class="d-none">
+                <button class="btn btn-dark rounded-pill px-5 fw-bold">ファイルを選択</button>
+            </div>
+            <div class="mt-4 text-center small text-muted">
+                <i class="bi bi-shield-check text-success"></i> <strong>プライバシー保護:</strong> データは外部サーバーに送信されません。
+            </div>
+            <div id="errorMsg" class="alert alert-danger mt-3 d-none shadow-sm"></div>
+        </div>
+
+        <div id="resultArea" style="display: none;">
+            
+            <div class="stat-grid">
+                <div class="stat-item">
+                    <div class="stat-val" id="valTotal">-</div>
+                    <div class="stat-label">総メッセージ数</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val" id="valDays">-</div>
+                    <div class="stat-label">継続期間 (日)</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val text-warning" id="valSticker">-</div>
+                    <div class="stat-label">スタンプ率</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-val text-success" id="valDailyAvg">-</div>
+                    <div class="stat-label">1日平均</div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-6 mb-4">
+                    <div class="card-custom h-100">
+                        <div class="card-header-c">
+                            <i class="bi bi-pentagon-fill text-primary"></i> ユーザー特性レーダー
+                        </div>
+                        <div class="card-body-c d-flex flex-column justify-content-center">
+                            <div style="height: 300px; position: relative;">
+                                <canvas id="radarChart"></canvas>
+                            </div>
+                            <p class="text-center x-small text-muted mt-3 mb-0">
+                                <span class="d-inline-block mx-2">⚡ マメさ(返信速度)</span>
+                                <span class="d-inline-block mx-2">🦉 夜型</span>
+                                <span class="d-inline-block mx-2">📜 長文度</span>
+                                <span class="d-inline-block mx-2">🎨 スタンプ</span>
+                                <span class="d-inline-block mx-2">📚 語彙力</span>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 mb-4">
+                    <div class="row h-100">
+                        <div class="col-md-6 mb-4 mb-md-0 pb-md-3">
+                            <div class="card-custom h-100">
+                                <div class="card-header-c"><i class="bi bi-moon-stars-fill text-dark"></i> 夜型指数 (23-04時)</div>
+                                <div class="card-body-c pt-0 d-flex flex-column justify-content-center">
+                                    <div class="text-center py-3">
+                                        <div class="display-4 fw-bold mb-2" id="valOwl">- %</div>
+                                        <span class="badge bg-dark text-white rounded-pill px-3 py-2" id="txtOwl">判定中</span>
+                                    </div>
+                                    <div class="progress" style="height: 8px;">
+                                        <div class="progress-bar bg-dark" id="barOwl" style="width: 0%"></div>
+                                    </div>
+                                    <p class="text-center small text-muted mt-2 mb-0">深夜帯の活動比率</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 pb-md-3">
+                            <div class="card-custom h-100">
+                                <div class="card-header-c"><i class="bi bi-chat-heart-fill text-danger"></i> 感謝 vs 謝罪</div>
+                                <div class="card-body-c pt-0 d-flex flex-column justify-content-center">
+                                    <div class="d-flex justify-content-between small fw-bold mb-2">
+                                        <span class="text-primary"><i class="bi bi-hand-thumbs-up-fill me-1"></i>ありがとう</span>
+                                        <span class="text-secondary">ごめん<i class="bi bi-emoji-frown-fill ms-1"></i></span>
+                                    </div>
+                                    <div class="progress mb-3" style="height: 16px; border-radius: 8px;">
+                                        <div class="progress-bar bg-primary" id="barThanks" style="width: 50%"></div>
+                                        <div class="progress-bar bg-secondary" id="barSorry" style="width: 50%"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between h5 fw-bold mb-0">
+                                        <span id="valThanks" class="text-primary">-</span>
+                                        <span id="valSorry" class="text-secondary">-</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom">
+                <div class="card-header-c"><i class="bi bi-grid-3x3-gap-fill text-success"></i> 生活リズムヒートマップ</div>
+                <div class="card-body-c">
+                    <div class="heatmap-wrapper">
+                        <table class="heatmap-table" id="heatmapTable">
+                            <thead><tr><td></td></tr></thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-custom mt-4">
+                <div class="card-header-c"><i class="bi bi-calculator text-info"></i> ユーザー別 統計分析 & 頻出ワード</div>
+                <div class="card-body-c">
+                    <ul class="nav nav-pills nav-pills-custom mb-4" id="userTabs" role="tablist"></ul>
+                    <div class="tab-content" id="userTabContent"></div>
+                </div>
+            </div>
+
+            <div class="card-custom mt-4">
+                <div class="card-header-c"><i class="bi bi-graph-up-arrow text-secondary"></i> メッセージ数の推移</div>
+                <div class="card-body-c">
+                    <div style="height: 300px;">
+                        <canvas id="lineChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // CONFIG
+        const CONFIG = {
+            colors: ['#06c755', '#007aff', '#ff9500', '#af52de', '#ff3b30', '#5856d6'],
+            ignoreNames: ['保存日時', 'System', 'システム', '', 'トーク履歴'],
+            ignorePatterns: [/が退出しました/, /通話をキャンセル/, /グループに参加/, /アルバムを作成/, /ノートを作成/, /通話時間/, /音声通話/],
+            stopWords: new Set([
+                "て","に","を","は","が","の","と","も","で","から","より","へ","や","か","な","ね","よ","わ","ぞ","ぜ",
+                "ます","です","し","ない","ず","ぬ","ん","られ","させ","た","だ","っ","てい","でし","ま","せ","なかっ",
+                "こと","もの","やつ","の","ほう","ため","ところ","わけ","うち","まま","つもり",
+                "私","僕","俺","自分","あなた","君","彼","彼女","それ","これ","あれ","どれ","なに","何","どこ","いつ",
+                "けど","けれど","ので","のに","なら","たら","れば","でも","しかし","だから","また","もう","まだ","すぐ",
+                "かなり","とても","すごく","めっちゃ","なんか","なんとなく","とりあえず","一応","ワンチャン","たぶん",
+                "スタンプ","写真","動画","送信","取り消","メッセージ","アルバム","ノート","参加","退出","通話","キャンセル",
+                "不在","着信","笑","w","ｗ","草","ー","〜","…","..","てか","あと","ここ","そう","よう","今日","明日",
+                "お","ん","ぁ","ぃ","ぅ","ぇ","ぉ","あり","する","ある","いる","なる","くる","いく","です"
+            ])
+        };
+
+        const KEYWORDS = {
+            gratitude: ['ありがとう', 'あざ', 'サンキュー', '感謝', '㌧', 'thanks'],
+            apology: ['ごめん', 'すまん', '申し訳', '謝', 'わり', 'sorry']
+        };
+
+        // --- Stats Calculator ---
+        function calculateStats(arr) {
+            if(!arr.length) return { mean: 0, variance: 0, stdDev: 0, median: 0 };
+            
+            // Mean
+            const sum = arr.reduce((a, b) => a + b, 0);
+            const mean = sum / arr.length;
+            
+            // Variance
+            const sumSqDiff = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0);
+            const variance = sumSqDiff / arr.length;
+            
+            // StdDev
+            const stdDev = Math.sqrt(variance);
+            
+            // Median
+            const sorted = [...arr].sort((a,b)=>a-b);
+            const mid = Math.floor(sorted.length/2);
+            const median = sorted.length%2!==0 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+            
+            return { mean, variance, stdDev, median };
+        }
+
+        // --- Handlers ---
+        const els = {
+            dropZone: document.getElementById('dropZone'),
+            fileInput: document.getElementById('fileInput'),
+            inputArea: document.getElementById('inputArea'),
+            resultArea: document.getElementById('resultArea'),
+            loading: document.getElementById('loading'),
+            errorMsg: document.getElementById('errorMsg')
+        };
+        let charts = {};
+
+        els.dropZone.addEventListener('click', () => els.fileInput.click());
+        els.dropZone.addEventListener('dragover', e => { e.preventDefault(); els.dropZone.classList.add('dragover'); });
+        els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
+        els.dropZone.addEventListener('drop', e => { e.preventDefault(); els.dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
+        els.fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+
+        function handleFile(file) {
+            if(!file || !file.name.endsWith('.txt')) return showError("テキストファイル(.txt)を選択してください");
+            els.errorMsg.classList.add('d-none');
+            els.loading.style.display = 'flex';
+
+            const reader = new FileReader();
+            reader.onload = e => {
+                setTimeout(() => {
+                    try {
+                        const parsed = parseText(e.target.result);
+                        if(parsed.length === 0) throw new Error("メッセージが見つかりません。形式を確認してください。");
+                        const stats = analyze(parsed);
+                        render(stats);
+                        els.inputArea.style.display = 'none';
+                        els.resultArea.style.display = 'block';
+                        window.scrollTo(0,0);
+                    } catch(err) {
+                        showError(err.message);
+                        console.error(err);
+                    } finally {
+                        els.loading.style.display = 'none';
+                    }
+                }, 100);
+            };
+            reader.readAsText(file);
+        }
+
+        function showError(msg) {
+            els.errorMsg.textContent = msg;
+            els.errorMsg.classList.remove('d-none');
+        }
+
+        // --- Parse ---
+        function parseText(text) {
+            const lines = text.split(/\r?\n/);
+            const data = [];
+            let date = null;
+            const datePtn = /^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})/;
+            const timePtn = /^\d{1,2}:\d{2}$/;
+
+            lines.forEach(line => {
+                line = line.trim();
+                if(!line) return;
+                const dMatch = line.match(datePtn);
+                if(dMatch) {
+                    date = `${dMatch[1]}/${dMatch[2].padStart(2,'0')}/${dMatch[3].padStart(2,'0')}`;
+                    return;
+                }
+                if(date) {
+                    const parts = line.split('\t');
+                    if(parts.length >= 3 && timePtn.test(parts[0])) {
+                        const sender = parts[1].trim();
+                        if(CONFIG.ignoreNames.includes(sender)) return;
+                        if(CONFIG.ignorePatterns.some(p => p.test(sender))) return;
+
+                        let content = parts.slice(2).join('\t');
+                        if(content.startsWith('"') && content.endsWith('"')) content = content.slice(1, -1);
+                        if(CONFIG.ignorePatterns.some(p => p.test(content))) return;
+
+                        let type = 'text';
+                        if(content.includes('[スタンプ]') || content.includes('[Sticker]')) type = 'sticker';
+                        else if(['[写真]','[動画]','[Photo]','[Video]'].some(k=>content.includes(k))) type = 'media';
+                        
+                        const [hh, mm] = parts[0].split(':').map(Number);
+                        data.push({
+                            date, timestamp: new Date(`${date} ${parts[0]}`),
+                            hour: hh, sender, content, type
+                        });
+                    }
+                }
+            });
+            return data;
+        }
+
+        // --- Analyze ---
+        function analyze(data) {
+            const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter) ? new Intl.Segmenter('ja', { granularity: 'word' }) : null;
+
+            const users = {};
+            const daily = {};
+            const heatmap = Array(7).fill(0).map(()=>Array(24).fill(0));
+            
+            let totalSticker = 0;
+            let nightMsg = 0; // 23-04
+            let thanks = 0, sorry = 0;
+            let lastMsg = null;
+
+            data.forEach(d => {
+                if(!users[d.sender]) {
+                    users[d.sender] = { 
+                        count: 0, sticker: 0, chars: 0, 
+                        words: {}, uniqueWords: new Set(),
+                        initiation: 0, replyTimes: [],
+                        hourly: Array(24).fill(0)
+                    };
+                }
+                const u = users[d.sender];
+                u.count++;
+
+                if(d.type === 'sticker') { u.sticker++; totalSticker++; }
+                else if(d.type === 'text') {
+                    u.chars += d.content.length;
+                    
+                    if(segmenter) {
+                        const segs = segmenter.segment(d.content);
+                        for(const s of segs) {
+                            const w = s.segment;
+                            if(s.isWordLike && !CONFIG.stopWords.has(w) && !/^\d+$/.test(w) && !/^[!-/:-@[-`{-~]+$/.test(w)) {
+                                u.words[w] = (u.words[w] || 0) + 1;
+                                u.uniqueWords.add(w);
+                            }
+                        }
+                    }
+                    if(KEYWORDS.gratitude.some(k=>d.content.includes(k))) thanks++;
+                    if(KEYWORDS.apology.some(k=>d.content.includes(k))) sorry++;
+                }
+
+                if(!daily[d.date]) daily[d.date] = 0;
+                daily[d.date]++;
+                heatmap[d.timestamp.getDay()][d.hour]++;
+                u.hourly[d.hour]++;
+                
+                if(d.hour >= 23 || d.hour < 4) nightMsg++;
+
+                // Context Analysis
+                if(lastMsg && lastMsg.sender !== d.sender) {
+                    const diffMin = (d.timestamp - lastMsg.timestamp) / (1000 * 60);
+                    // 12時間(720分)以内を返信とみなす
+                    if(diffMin < 720) u.replyTimes.push(diffMin);
+                    if(diffMin > 360) u.initiation++; 
+                } else if(!lastMsg) {
+                    u.initiation++;
+                }
+                lastMsg = d;
+            });
+
+            // Stats Calc
+            const userList = Object.keys(users);
+            const statsArr = userList.map(name => {
+                const u = users[name];
+                
+                // Advanced Stats
+                const replyStats = calculateStats(u.replyTimes);
+                u.replyStats = replyStats;
+
+                const nightCount = u.hourly.slice(23).concat(u.hourly.slice(0,5)).reduce((a,b)=>a+b,0);
+                const nightRate = u.count ? (nightCount/u.count) : 0;
+                const lenAvg = u.count > u.sticker ? (u.chars / (u.count-u.sticker)) : 0;
+                const stickerRate = u.count ? (u.sticker/u.count) : 0;
+                const vocab = u.uniqueWords.size;
+                return { name, avgReply: replyStats.mean, nightRate, lenAvg, stickerRate, vocab };
+            });
+
+            const normalize = (val, min, max) => Math.min(100, Math.max(0, ((val - min) / (max - min || 1)) * 100));
+            
+            userList.forEach(name => {
+                const u = users[name];
+                const s = statsArr.find(s => s.name === name);
+                
+                u.topWords = Object.entries(u.words).sort((a,b)=>b[1]-a[1]).slice(0, 20);
+                u.radar = [
+                    100 - normalize(s.avgReply, 0, 60),
+                    normalize(s.nightRate, 0, 0.5),
+                    normalize(s.lenAvg, 0, 30),
+                    normalize(s.stickerRate, 0, 0.5),
+                    normalize(s.vocab, 0, 1000)
+                ];
+                u.rawStats = s;
+            });
+
+            return {
+                users, userList, daily, heatmap,
+                total: data.length, totalSticker,
+                nightMsg, thanks, sorry,
+                start: data[0].date, end: data[data.length-1].date
+            };
+        }
+
+        // --- Render ---
+        function render(data) {
+            // Summary
+            document.getElementById('valTotal').innerText = data.total.toLocaleString();
+            const startD = new Date(data.start);
+            const endD = new Date(data.end);
+            const days = Math.max(1, Math.ceil((endD - startD)/(86400000)) + 1);
+            document.getElementById('valDays').innerText = days;
+            document.getElementById('valSticker').innerText = ((data.totalSticker/data.total)*100).toFixed(1) + "%";
+            document.getElementById('valDailyAvg').innerText = (data.total / days).toFixed(1);
+
+            // Night Owl
+            const nightRate = ((data.nightMsg / data.total) * 100).toFixed(1);
+            document.getElementById('valOwl').innerText = nightRate + "%";
+            document.getElementById('barOwl').style.width = Math.min(nightRate * 2.5, 100) + "%";
+            let owlTxt = "朝型 ☀️";
+            if(nightRate > 10) owlTxt = "夜ふかし気味 🌙";
+            if(nightRate > 25) owlTxt = "完全な夜型 🦉";
+            document.getElementById('txtOwl').innerText = owlTxt;
+
+            // Balance
+            const sumBal = data.thanks + data.sorry || 1;
+            const tRate = (data.thanks / sumBal) * 100;
+            document.getElementById('barThanks').style.width = tRate + "%";
+            document.getElementById('barSorry').style.width = (100 - tRate) + "%";
+            document.getElementById('valThanks').innerText = data.thanks + "回";
+            document.getElementById('valSorry').innerText = data.sorry + "回";
+
+            // Heatmap
+            const hmTbody = document.querySelector('#heatmapTable tbody');
+            const hmThead = document.querySelector('#heatmapTable thead tr');
+            hmThead.innerHTML = '<td></td>' + [...Array(24).keys()].map(h => `<td class="hm-hour">${h}</td>`).join('');
+            hmTbody.innerHTML = '';
+            let maxHM = 0;
+            data.heatmap.forEach(r => r.forEach(v => maxHM = Math.max(maxHM, v)));
+            const daysLabel = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+            data.heatmap.forEach((row, i) => {
+                let html = `<tr><td class="hm-day">${daysLabel[i]}</td>`;
+                row.forEach(val => {
+                    const alpha = val ? Math.max(0.1, val/maxHM) : 0;
+                    const color = `rgba(6, 199, 85, ${alpha})`;
+                    html += `<td class="heatmap-cell" style="background-color:${color}" title="${val}件"></td>`;
+                });
+                html += '</tr>';
+                hmTbody.innerHTML += html;
+            });
+
+            // Tabs
+            const uTabs = document.getElementById('userTabs');
+            const uContent = document.getElementById('userTabContent');
+            uTabs.innerHTML = ''; uContent.innerHTML = '';
+
+            data.userList.forEach((name, idx) => {
+                const isActive = idx === 0;
+                const u = data.users[name];
+                const tabId = `user-tab-${idx}`;
+                const paneId = `user-pane-${idx}`;
+
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.innerHTML = `<button class="nav-link ${isActive?'active':''}" id="${tabId}" data-bs-toggle="pill" data-bs-target="#${paneId}" type="button">${name}</button>`;
+                uTabs.appendChild(li);
+
+                const wordsHtml = u.topWords.map((w, i) => `
+                    <span class="word-tag">
+                        <span class="rank-badge">${i+1}</span>${w[0]} <small class="text-secondary">(${w[1]})</small>
+                    </span>
+                `).join('');
+
+                const pane = document.createElement('div');
+                pane.className = `tab-pane fade ${isActive?'show active':''}`;
+                pane.id = paneId;
+                pane.innerHTML = `
+                    <div class="row mb-4">
+                        <div class="col-6 col-md-3">
+                            <div class="detail-stat-row"><span class="detail-stat-label">送信数</span><span class="detail-stat-val">${u.count}</span></div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="detail-stat-row"><span class="detail-stat-label">会話開始</span><span class="detail-stat-val text-primary">${u.initiation}</span></div>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <div class="bg-light p-3 rounded">
+                                <h6 class="small text-muted mb-2 text-uppercase fw-bold">返信速度 (分)</h6>
+                                <div class="d-flex justify-content-between text-center">
+                                    <div><div class="small text-muted">平均</div><div class="fw-bold fs-5">${u.replyStats.mean.toFixed(2)}</div></div>
+                                    <div class="border-start ps-3"><div class="small text-muted">分散</div><div class="fw-bold fs-5">${u.replyStats.variance.toFixed(2)}</div></div>
+                                    <div class="border-start ps-3"><div class="small text-muted">標準偏差</div><div class="fw-bold fs-5">±${u.replyStats.stdDev.toFixed(2)}</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <h6 class="small fw-bold text-secondary border-bottom pb-2 mb-2">頻出ワード TOP 20</h6>
+                    <div>${wordsHtml || '<span class="text-muted small">データ不足</span>'}</div>
+                `;
+                uContent.appendChild(pane);
+            });
+
+            // Charts
+            drawCharts(data);
+        }
+
+        function drawCharts(data) {
+            Object.values(charts).forEach(c => c.destroy());
+            
+            // Radar
+            const ctxRadar = document.getElementById('radarChart').getContext('2d');
+            charts.radar = new Chart(ctxRadar, {
+                type: 'radar',
+                data: {
+                    labels: ['マメさ', '夜型', '長文度', 'スタンプ', '語彙力'],
+                    datasets: data.userList.map((name, i) => ({
+                        label: name,
+                        data: data.users[name].radar,
+                        borderColor: CONFIG.colors[i % CONFIG.colors.length],
+                        backgroundColor: CONFIG.colors[i % CONFIG.colors.length] + '33',
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }))
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: { r: { min: 0, max: 100, ticks: { display: false } } },
+                    plugins: { legend: { position: 'top' } }
+                }
+            });
+
+            // Line
+            const dates = Object.keys(data.daily).sort();
+            const ctxLine = document.getElementById('lineChart').getContext('2d');
+            charts.line = new Chart(ctxLine, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'メッセージ数',
+                        data: dates.map(d => data.daily[d]),
+                        borderColor: '#06c755',
+                        backgroundColor: 'rgba(6, 199, 85, 0.1)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 0,
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { x: { display: false }, y: { beginAtZero: true } },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+        }
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
