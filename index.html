@@ -441,6 +441,111 @@
       padding: 0 2px;
     }
 
+    .word-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #f1f3f5;
+      color: #343a40;
+      font-size: 0.88rem;
+      font-weight: 750;
+      margin: 3px;
+    }
+
+    .word-chip.strong {
+      background: rgba(6, 199, 85, 0.12);
+      color: #087f3f;
+      border: 1px solid rgba(6, 199, 85, 0.25);
+    }
+
+    .insight-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: #fff;
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.045);
+    }
+
+    .insight-rank {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: rgba(6, 199, 85, 0.12);
+      color: #087f3f;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      flex: 0 0 auto;
+    }
+
+    .bar-mini {
+      height: 8px;
+      background: #eef2f4;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-mini > div {
+      height: 100%;
+      background: var(--line);
+      border-radius: 999px;
+    }
+
+    .network-wrap {
+      width: 100%;
+      min-height: 520px;
+      overflow: auto;
+      border-radius: 18px;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(6,199,85,.10), transparent 25%),
+        radial-gradient(circle at 80% 80%, rgba(13,110,253,.08), transparent 25%),
+        #fbfdff;
+      border: 1px solid var(--border);
+    }
+
+    .network-svg {
+      width: 100%;
+      min-width: 850px;
+      height: 520px;
+      display: block;
+    }
+
+    .network-line {
+      stroke: rgba(6, 199, 85, 0.45);
+      stroke-linecap: round;
+    }
+
+    .network-node {
+      fill: #06c755;
+      stroke: #ffffff;
+      stroke-width: 3;
+      filter: drop-shadow(0 7px 10px rgba(15, 23, 42, .16));
+    }
+
+    .network-label {
+      font-size: 12px;
+      font-weight: 800;
+      fill: #17202a;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
+    .network-edge-label {
+      font-size: 10px;
+      font-weight: 800;
+      fill: #087f3f;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 4px;
+      stroke-linejoin: round;
+    }
+
     @media (max-width: 1120px) {
       .metric-grid {
         grid-template-columns: repeat(3, 1fr);
@@ -518,11 +623,11 @@
 
           <h1 class="main-title mb-3">
             LINEトーク履歴を<br>
-            時間・関係性・返信速度まで解析
+            関係性・盛り上がり・返信速度まで解析
           </h1>
 
           <p class="text-muted mb-4">
-            LINEのトーク履歴txtを読み込み、発言数・時間帯・曜日・返信速度・会話開始・メンバー別特徴をまとめて可視化します。
+            LINEのトーク履歴txtを読み込み、発言数・時間帯・曜日・返信速度・会話開始・特徴語・A→B返信ネットワークを可視化します。
           </p>
 
           <div class="privacy-box">
@@ -581,6 +686,12 @@
       <div class="tabs">
         <button class="tab-btn active" data-tab="overview">
           <i class="bi bi-graph-up me-1"></i>概要
+        </button>
+        <button class="tab-btn" data-tab="insights">
+          <i class="bi bi-stars me-1"></i>全体まとめ
+        </button>
+        <button class="tab-btn" data-tab="network">
+          <i class="bi bi-diagram-3 me-1"></i>返信ネットワーク
         </button>
         <button class="tab-btn" data-tab="time">
           <i class="bi bi-clock-history me-1"></i>時間帯分析
@@ -682,6 +793,125 @@
             </div>
             <div class="chart-box-sm">
               <canvas id="gapChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-insights" class="hidden">
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">最も盛り上がった日</div>
+            <div class="metric-value text-success" id="bestDayValue">-</div>
+            <div class="metric-sub" id="bestDaySub">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">最速返信者</div>
+            <div class="metric-value text-primary" id="fastestUserValue">-</div>
+            <div class="metric-sub" id="fastestUserSub">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">会話開始王</div>
+            <div class="metric-value text-warning" id="starterUserValue">-</div>
+            <div class="metric-sub" id="starterUserSub">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">最多ペア</div>
+            <div class="metric-value" id="topPairValue">-</div>
+            <div class="metric-sub" id="topPairSub">-</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">総返信遷移</div>
+            <div class="metric-value" id="totalTransitionsValue">-</div>
+            <div class="metric-sub">A→Bとして数えた回数</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">特徴語数</div>
+            <div class="metric-value" id="globalWordsValue">-</div>
+            <div class="metric-sub">抽出された候補語</div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-fire text-danger me-1"></i>盛り上がった日ランキング</h2>
+              <span class="small-muted">発言数・参加人数・平均との差で評価</span>
+            </div>
+            <div id="hotDaysList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-lightning-charge text-warning me-1"></i>反応が速い人ランキング</h2>
+              <span class="small-muted">送信者が変わった返信のみ</span>
+            </div>
+            <div class="chart-box-sm mb-3">
+              <canvas id="fastResponderChart"></canvas>
+            </div>
+            <div id="fastResponderList"></div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-send-plus text-success me-1"></i>会話を始める人ランキング</h2>
+              <span class="small-muted">一定時間空いた後の最初の発言</span>
+            </div>
+            <div class="chart-box-sm mb-3">
+              <canvas id="starterChart"></canvas>
+            </div>
+            <div id="starterList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-chat-square-quote text-primary me-1"></i>全体の特徴語</h2>
+              <span class="small-muted">頻度と希少性を加味</span>
+            </div>
+            <div id="globalCharacteristicWords"></div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-network" class="hidden">
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-diagram-3 text-success me-1"></i>A→B返信ネットワーク</h2>
+              <span class="small-muted">直前の別人発言への返信として集計</span>
+            </div>
+            <div class="network-wrap">
+              <svg id="networkSvg" class="network-svg" viewBox="0 0 900 520"></svg>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>返信ペアランキング</h2>
+              <span class="small-muted">上位30ペア</span>
+            </div>
+            <div id="replyPairList"></div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>返信ペア数</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="replyPairChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>平均返信時間が短いペア</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="pairSpeedChart"></canvas>
             </div>
           </div>
         </div>
@@ -807,6 +1037,46 @@
             <div class="layout-2">
               <div class="panel">
                 <div class="panel-title">
+                  <h2>その人っぽい言葉</h2>
+                  <span class="small-muted">TF-IDF風</span>
+                </div>
+                <div id="userCharacteristicWords"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>よく使う単語</h2>
+                </div>
+                <div id="userTopWords"></div>
+              </div>
+            </div>
+
+            <div class="layout-3">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>よく使う絵文字</h2>
+                </div>
+                <div id="userTopEmojis"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>よく使う語尾</h2>
+                </div>
+                <div id="userTopSuffixes"></div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>キーワード反応</h2>
+                </div>
+                <div id="userKeywordSummary"></div>
+              </div>
+            </div>
+
+            <div class="layout-2">
+              <div class="panel">
+                <div class="panel-title">
                   <h2>ユーザー特性レーダー</h2>
                 </div>
                 <div class="chart-box-sm">
@@ -861,6 +1131,7 @@
                       <th>スタンプ率</th>
                       <th>夜型度</th>
                       <th>平均返信</th>
+                      <th>中央値返信</th>
                       <th>会話開始</th>
                       <th>感謝</th>
                       <th>謝罪</th>
@@ -969,6 +1240,46 @@
           /通話時間/,
           /メッセージの送信を取り消しました/
         ],
+        stopWords: [
+          "これ",
+          "それ",
+          "あれ",
+          "ここ",
+          "そこ",
+          "どこ",
+          "する",
+          "した",
+          "して",
+          "いる",
+          "ある",
+          "なる",
+          "です",
+          "ます",
+          "だね",
+          "だよ",
+          "かな",
+          "けど",
+          "から",
+          "まで",
+          "より",
+          "とか",
+          "って",
+          "ので",
+          "この",
+          "その",
+          "あの",
+          "ため",
+          "もの",
+          "こと",
+          "さん",
+          "ちゃん",
+          "くん",
+          "www",
+          "ｗｗｗ",
+          "笑笑",
+          "よろしく",
+          "お願い"
+        ],
         keywords: {
           thanks: [
             "ありがとう",
@@ -1067,8 +1378,10 @@
       }
 
       function chart(id, config) {
+        const el = document.getElementById(id);
+        if (!el) return;
         destroyChart(id);
-        const ctx = document.getElementById(id).getContext("2d");
+        const ctx = el.getContext("2d");
         state.charts[id] = new Chart(ctx, config);
       }
 
@@ -1109,7 +1422,15 @@
 
           const target = btn.dataset.tab;
 
-          ["overview", "time", "members", "messages", "files"].forEach(t => {
+          [
+            "overview",
+            "insights",
+            "network",
+            "time",
+            "members",
+            "messages",
+            "files"
+          ].forEach(t => {
             document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== target);
           });
 
@@ -1311,6 +1632,8 @@
       function analyze(messages) {
         const users = {};
         const daily = {};
+        const dailyUsers = {};
+        const dailyWordCounts = {};
         const monthly = {};
         const hourly = Array(24).fill(0);
         const weekday = Array(7).fill(0);
@@ -1334,6 +1657,9 @@
           夜: 0
         }));
 
+        const globalWordCounts = {};
+        const replyPairs = {};
+        let totalTransitions = 0;
         let last = null;
 
         for (const msg of messages) {
@@ -1357,6 +1683,9 @@
               question: 0,
               initiation: 0,
               replyTimes: [],
+              wordCounts: {},
+              emojiCounts: {},
+              suffixCounts: {},
               first: null,
               last: null
             };
@@ -1379,11 +1708,36 @@
                 u[key]++;
               }
             }
+
+            const words = extractWords(msg.content);
+            if (!dailyWordCounts[msg.date]) dailyWordCounts[msg.date] = {};
+
+            for (const w of words) {
+              u.wordCounts[w] = (u.wordCounts[w] || 0) + 1;
+              globalWordCounts[w] = (globalWordCounts[w] || 0) + 1;
+              dailyWordCounts[msg.date][w] = (dailyWordCounts[msg.date][w] || 0) + 1;
+            }
+
+            const emojis = msg.content.match(/[\u{1F300}-\u{1FAFF}]/gu) || [];
+            for (const e of emojis) {
+              u.emojiCounts[e] = (u.emojiCounts[e] || 0) + 1;
+            }
+
+            const trimmed = msg.content.trim();
+            if (trimmed.length >= 2) {
+              const suffix = trimmed.slice(-2);
+              if (!suffix.includes("\n")) {
+                u.suffixCounts[suffix] = (u.suffixCounts[suffix] || 0) + 1;
+              }
+            }
           } else {
             u[msg.type] = (u[msg.type] || 0) + 1;
           }
 
           daily[msg.date] = (daily[msg.date] || 0) + 1;
+          if (!dailyUsers[msg.date]) dailyUsers[msg.date] = new Set();
+          dailyUsers[msg.date].add(msg.sender);
+
           monthly[monthKey(msg.timestamp)] = (monthly[monthKey(msg.timestamp)] || 0) + 1;
           hourly[msg.hour]++;
           weekday[msg.weekday]++;
@@ -1404,6 +1758,22 @@
             if (last.sender !== msg.sender && diff >= 0 && diff <= 12 * 60) {
               u.replyTimes.push(diff);
               replyMins.push(diff);
+              totalTransitions++;
+
+              const key = `${last.sender}|||${msg.sender}`;
+              if (!replyPairs[key]) {
+                replyPairs[key] = {
+                  from: last.sender,
+                  to: msg.sender,
+                  count: 0,
+                  totalMin: 0,
+                  times: []
+                };
+              }
+
+              replyPairs[key].count++;
+              replyPairs[key].totalMin += diff;
+              replyPairs[key].times.push(diff);
             }
 
             if (diff > 6 * 60 || (last.sender === msg.sender && diff > 12 * 60)) {
@@ -1417,9 +1787,17 @@
         }
 
         const userList = Object.values(users).sort((a, b) => b.count - a.count);
-
         const maxCount = Math.max(...userList.map(u => u.count), 1);
         const maxInit = Math.max(...userList.map(u => u.initiation), 1);
+
+        const documentFreq = {};
+
+        for (const u of userList) {
+          const uniqueWords = new Set(Object.keys(u.wordCounts));
+          for (const w of uniqueWords) {
+            documentFreq[w] = (documentFreq[w] || 0) + 1;
+          }
+        }
 
         for (const u of userList) {
           u.share = u.count / messages.length;
@@ -1436,17 +1814,97 @@
           u.medianReply = median(u.replyTimes);
           u.activeScore = Math.min(100, 100 * u.count / maxCount);
           u.initiationScore = Math.min(100, 100 * u.initiation / maxInit);
+
+          u.topWords = Object.entries(u.wordCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 25);
+
+          u.characteristicWords = Object.entries(u.wordCounts)
+            .map(([word, count]) => {
+              const idf = Math.log((1 + userList.length) / (1 + (documentFreq[word] || 0))) + 1;
+              return [word, count, count * idf];
+            })
+            .sort((a, b) => b[2] - a[2])
+            .slice(0, 25);
+
+          u.topEmojis = Object.entries(u.emojiCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 16);
+
+          u.topSuffixes = Object.entries(u.suffixCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 16);
         }
+
+        const replyPairList = Object.values(replyPairs)
+          .map(p => ({
+            ...p,
+            avgMin: p.count ? p.totalMin / p.count : null,
+            medianMin: median(p.times)
+          }))
+          .sort((a, b) => b.count - a.count);
 
         const start = messages[0].timestamp;
         const end = messages[messages.length - 1].timestamp;
         const days = Math.max(1, Math.floor((end - start) / 86400000) + 1);
         const peakHour = hourly.indexOf(Math.max(...hourly));
 
+        const dailyValues = Object.values(daily);
+        const meanDaily = dailyValues.reduce((a, b) => a + b, 0) / dailyValues.length;
+        const sdDaily = Math.sqrt(
+          dailyValues.reduce((a, b) => a + (b - meanDaily) ** 2, 0) / dailyValues.length
+        );
+
+        const hotDays = Object.keys(daily)
+          .map(d => {
+            const count = daily[d];
+            const participantCount = dailyUsers[d] ? dailyUsers[d].size : 0;
+            const dayMessages = messages.filter(m => m.date === d);
+            const memberCounts = {};
+            for (const m of dayMessages) {
+              memberCounts[m.sender] = (memberCounts[m.sender] || 0) + 1;
+            }
+
+            const topMembers = Object.entries(memberCounts)
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 5);
+
+            const topWords = Object.entries(dailyWordCounts[d] || {})
+              .sort((a, b) => b[1] - a[1])
+              .slice(0, 12);
+
+            const z = sdDaily ? (count - meanDaily) / sdDaily : 0;
+            const score = count + participantCount * 8 + Math.max(0, z) * 20;
+
+            return {
+              date: d,
+              count,
+              participantCount,
+              topMembers,
+              topWords,
+              z,
+              score
+            };
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 20);
+
+        const globalCharacteristicWords = Object.entries(globalWordCounts)
+          .map(([word, count]) => {
+            const df = documentFreq[word] || 1;
+            const idf = Math.log((1 + userList.length) / (1 + df)) + 1;
+            return [word, count, count * idf];
+          })
+          .sort((a, b) => b[2] - a[2])
+          .slice(0, 35);
+
         return {
           users,
           userList,
           daily,
+          dailyUsers,
+          dailyWordCounts,
+          hotDays,
           monthly,
           hourly,
           weekday,
@@ -1456,12 +1914,58 @@
           replyMins,
           zones,
           weekdayZones,
+          globalWordCounts,
+          globalCharacteristicWords,
+          replyPairs,
+          replyPairList,
+          totalTransitions,
           start,
           end,
           days,
           total: messages.length,
           peakHour
         };
+      }
+
+      function extractWords(text) {
+        if (!text) return [];
+
+        const normalized = text
+          .toLowerCase()
+          .replace(/[!"#$%&'()\*\+\-.,\/:;<=>@\[\]^_`{|}~！？。、，．「」『』【】（）]/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        const words = [];
+
+        const asciiWords = normalized.match(/[a-z0-9_]{2,}/g) || [];
+        words.push(...asciiWords);
+
+        const kanaWords = normalized.match(/[ァ-ヶー]{2,}/g) || [];
+        words.push(...kanaWords);
+
+        const emojiWords = normalized.match(/[\u{1F300}-\u{1FAFF}]/gu) || [];
+        words.push(...emojiWords);
+
+        const jpBlocks = normalized.match(/[一-龥ぁ-んァ-ヶー]{2,}/g) || [];
+
+        for (const block of jpBlocks) {
+          if (/^[ァ-ヶー]+$/.test(block)) continue;
+
+          for (const n of [2, 3]) {
+            for (let i = 0; i <= block.length - n; i++) {
+              const gram = block.slice(i, i + n);
+              words.push(gram);
+            }
+          }
+        }
+
+        return words.filter(w => {
+          if (w.length < 2 && !/[\u{1F300}-\u{1FAFF}]/u.test(w)) return false;
+          if (CONFIG.stopWords.includes(w)) return false;
+          if (/^\d+$/.test(w)) return false;
+          return true;
+        });
       }
 
       function getZone(hour) {
@@ -1511,6 +2015,8 @@
       function renderAll() {
         renderMetrics();
         renderOverviewCharts();
+        renderInsights();
+        renderNetwork();
         renderTimeCharts();
         renderMembers();
         renderMessages();
@@ -1698,6 +2204,358 @@
             },
             scales: {
               y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderInsights() {
+        const s = state.stats;
+        const bestDay = s.hotDays[0];
+        const fastest = [...s.userList].filter(u => u.avgReply != null).sort((a, b) => a.avgReply - b.avgReply)[0];
+        const starter = [...s.userList].sort((a, b) => b.initiation - a.initiation)[0];
+        const topPair = s.replyPairList[0];
+
+        document.getElementById("bestDayValue").textContent = bestDay ? bestDay.date : "-";
+        document.getElementById("bestDaySub").textContent = bestDay ? `${fmt(bestDay.count)}件 / ${fmt(bestDay.participantCount)}人` : "-";
+
+        document.getElementById("fastestUserValue").textContent = fastest ? fastest.name : "-";
+        document.getElementById("fastestUserSub").textContent = fastest ? `平均 ${fmt(fastest.avgReply, 1)}分` : "-";
+
+        document.getElementById("starterUserValue").textContent = starter ? starter.name : "-";
+        document.getElementById("starterUserSub").textContent = starter ? `${fmt(starter.initiation)}回` : "-";
+
+        document.getElementById("topPairValue").textContent = topPair ? `${topPair.from}→${topPair.to}` : "-";
+        document.getElementById("topPairSub").textContent = topPair ? `${fmt(topPair.count)}回 / 平均${fmt(topPair.avgMin, 1)}分` : "-";
+
+        document.getElementById("totalTransitionsValue").textContent = fmt(s.totalTransitions);
+        document.getElementById("globalWordsValue").textContent = fmt(Object.keys(s.globalWordCounts).length);
+
+        renderHotDaysList();
+        renderFastResponders();
+        renderStarters();
+        renderCharacteristicChips("globalCharacteristicWords", s.globalCharacteristicWords);
+      }
+
+      function renderHotDaysList() {
+        const s = state.stats;
+        const root = document.getElementById("hotDaysList");
+        const max = Math.max(...s.hotDays.map(d => d.count), 1);
+
+        root.innerHTML = s.hotDays.slice(0, 12).map((d, i) => {
+          const members = d.topMembers
+            .map(([name, count]) => `<span class="word-chip">${esc(name)} <span class="small-muted">${fmt(count)}</span></span>`)
+            .join("");
+
+          const words = d.topWords
+            .slice(0, 8)
+            .map(([w, count]) => `<span class="word-chip strong">${esc(w)} <span class="small-muted">${fmt(count)}</span></span>`)
+            .join("");
+
+          return `
+            <div class="insight-card">
+              <div class="d-flex gap-3 align-items-start">
+                <div class="insight-rank">${i + 1}</div>
+                <div class="flex-grow-1">
+                  <div class="d-flex justify-content-between gap-2 flex-wrap">
+                    <div>
+                      <div class="fw-bold fs-5">${esc(d.date)}</div>
+                      <div class="small-muted">
+                        ${fmt(d.count)} messages / ${fmt(d.participantCount)} members / z=${fmt(d.z, 2)}
+                      </div>
+                    </div>
+                    <div class="text-end">
+                      <div class="small-muted">盛り上がりスコア</div>
+                      <div class="fw-bold text-success">${fmt(d.score, 1)}</div>
+                    </div>
+                  </div>
+                  <div class="bar-mini mt-2 mb-2">
+                    <div style="width:${Math.min(100, d.count / max * 100)}%"></div>
+                  </div>
+                  <div class="small-muted mb-1">主要メンバー</div>
+                  <div class="mb-2">${members || `<span class="small-muted">なし</span>`}</div>
+                  <div class="small-muted mb-1">その日の特徴語</div>
+                  <div>${words || `<span class="small-muted">なし</span>`}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      function renderFastResponders() {
+        const top = state.stats.userList
+          .filter(u => u.avgReply != null)
+          .sort((a, b) => a.avgReply - b.avgReply)
+          .slice(0, 12);
+
+        const root = document.getElementById("fastResponderList");
+
+        root.innerHTML = top.map((u, i) => `
+          <div class="insight-card">
+            <div class="d-flex align-items-center gap-3">
+              <div class="insight-rank">${i + 1}</div>
+              <div class="flex-grow-1">
+                <div class="fw-bold">${esc(u.name)}</div>
+                <div class="small-muted">
+                  平均 ${fmt(u.avgReply, 1)}分 / 中央値 ${u.medianReply == null ? "-" : fmt(u.medianReply, 1) + "分"} / 返信 ${fmt(u.replyTimes.length)}回
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+
+        chart("fastResponderChart", {
+          type: "bar",
+          data: {
+            labels: top.map(u => u.name).reverse(),
+            datasets: [
+              {
+                label: "平均返信時間 分",
+                data: top.map(u => u.avgReply).reverse()
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderStarters() {
+        const top = [...state.stats.userList]
+          .sort((a, b) => b.initiation - a.initiation)
+          .slice(0, 12);
+
+        const max = Math.max(...top.map(u => u.initiation), 1);
+        const root = document.getElementById("starterList");
+
+        root.innerHTML = top.map((u, i) => `
+          <div class="insight-card">
+            <div class="d-flex align-items-center gap-3">
+              <div class="insight-rank">${i + 1}</div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between">
+                  <div class="fw-bold">${esc(u.name)}</div>
+                  <div class="fw-bold text-success">${fmt(u.initiation)}回</div>
+                </div>
+                <div class="bar-mini mt-2">
+                  <div style="width:${Math.min(100, u.initiation / max * 100)}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+
+        chart("starterChart", {
+          type: "bar",
+          data: {
+            labels: top.map(u => u.name).reverse(),
+            datasets: [
+              {
+                label: "会話開始回数",
+                data: top.map(u => u.initiation).reverse()
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderNetwork() {
+        renderNetworkSvg();
+        renderReplyPairList();
+        renderReplyPairCharts();
+      }
+
+      function renderNetworkSvg() {
+        const svg = document.getElementById("networkSvg");
+        const s = state.stats;
+        const nodes = s.userList.slice(0, 12);
+        const nodeNames = nodes.map(u => u.name);
+        const edges = s.replyPairList
+          .filter(p => nodeNames.includes(p.from) && nodeNames.includes(p.to))
+          .slice(0, 35);
+
+        const w = 900;
+        const h = 520;
+        const cx = w / 2;
+        const cy = h / 2;
+        const r = 190;
+        const maxCount = Math.max(...nodes.map(n => n.count), 1);
+        const maxEdge = Math.max(...edges.map(e => e.count), 1);
+
+        const positions = {};
+        nodes.forEach((u, i) => {
+          const angle = -Math.PI / 2 + 2 * Math.PI * i / nodes.length;
+          positions[u.name] = {
+            x: cx + r * Math.cos(angle),
+            y: cy + r * Math.sin(angle)
+          };
+        });
+
+        let html = `
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+              <path d="M0,0 L0,6 L7,3 z" fill="rgba(6,199,85,.65)"></path>
+            </marker>
+          </defs>
+        `;
+
+        for (const e of edges) {
+          const a = positions[e.from];
+          const b = positions[e.to];
+          if (!a || !b) continue;
+
+          const dx = b.x - a.x;
+          const dy = b.y - a.y;
+          const len = Math.sqrt(dx * dx + dy * dy) || 1;
+          const offset = 24;
+          const x1 = a.x + dx / len * offset;
+          const y1 = a.y + dy / len * offset;
+          const x2 = b.x - dx / len * offset;
+          const y2 = b.y - dy / len * offset;
+          const mx = (x1 + x2) / 2;
+          const my = (y1 + y2) / 2;
+          const sw = 1.2 + 6 * e.count / maxEdge;
+
+          html += `
+            <line
+              class="network-line"
+              x1="${x1}"
+              y1="${y1}"
+              x2="${x2}"
+              y2="${y2}"
+              stroke-width="${sw}"
+              marker-end="url(#arrow)"
+            ></line>
+            <text class="network-edge-label" x="${mx}" y="${my}">${e.count}</text>
+          `;
+        }
+
+        for (const u of nodes) {
+          const p = positions[u.name];
+          const radius = 18 + 24 * Math.sqrt(u.count / maxCount);
+          const labelY = p.y + radius + 18;
+
+          html += `
+            <circle class="network-node" cx="${p.x}" cy="${p.y}" r="${radius}"></circle>
+            <text class="network-label" x="${p.x}" y="${labelY}" text-anchor="middle">${esc(u.name)}</text>
+            <text class="network-edge-label" x="${p.x}" y="${p.y + 4}" text-anchor="middle" fill="#fff">${fmt(u.count)}</text>
+          `;
+        }
+
+        svg.innerHTML = html;
+      }
+
+      function renderReplyPairList() {
+        const pairs = state.stats.replyPairList.slice(0, 30);
+        const max = Math.max(...pairs.map(p => p.count), 1);
+
+        document.getElementById("replyPairList").innerHTML = pairs.map((p, i) => `
+          <div class="insight-card">
+            <div class="d-flex align-items-center gap-3">
+              <div class="insight-rank">${i + 1}</div>
+              <div class="flex-grow-1">
+                <div class="d-flex justify-content-between gap-2 flex-wrap">
+                  <div class="fw-bold">${esc(p.from)} → ${esc(p.to)}</div>
+                  <div class="fw-bold text-success">${fmt(p.count)}回</div>
+                </div>
+                <div class="small-muted">
+                  平均返信 ${fmt(p.avgMin, 1)}分 / 中央値 ${p.medianMin == null ? "-" : fmt(p.medianMin, 1) + "分"}
+                </div>
+                <div class="bar-mini mt-2">
+                  <div style="width:${Math.min(100, p.count / max * 100)}%"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join("");
+      }
+
+      function renderReplyPairCharts() {
+        const pairs = state.stats.replyPairList.slice(0, 15).reverse();
+
+        chart("replyPairChart", {
+          type: "bar",
+          data: {
+            labels: pairs.map(p => `${p.from}→${p.to}`),
+            datasets: [
+              {
+                label: "返信回数",
+                data: pairs.map(p => p.count)
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const speedPairs = state.stats.replyPairList
+          .filter(p => p.count >= 3 && p.avgMin != null)
+          .sort((a, b) => a.avgMin - b.avgMin)
+          .slice(0, 15)
+          .reverse();
+
+        chart("pairSpeedChart", {
+          type: "bar",
+          data: {
+            labels: speedPairs.map(p => `${p.from}→${p.to}`),
+            datasets: [
+              {
+                label: "平均返信時間 分",
+                data: speedPairs.map(p => p.avgMin)
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
                 beginAtZero: true
               }
             }
@@ -1969,6 +2827,7 @@
             <td>${pct(u.stickerRate)}</td>
             <td>${pct(u.nightRate)}</td>
             <td>${u.avgReply == null ? "-" : fmt(u.avgReply, 1) + "分"}</td>
+            <td>${u.medianReply == null ? "-" : fmt(u.medianReply, 1) + "分"}</td>
             <td>${fmt(u.initiation)}</td>
             <td>${fmt(u.thanks)}</td>
             <td>${fmt(u.sorry)}</td>
@@ -2010,6 +2869,18 @@
         document.getElementById("uAvgLen").textContent = fmt(u.avgLen, 1);
         document.getElementById("uReply").textContent = u.avgReply == null ? "-" : fmt(u.avgReply, 1) + "分";
         document.getElementById("uNight").textContent = pct(u.nightRate);
+
+        renderWordChips("userTopWords", u.topWords, false);
+        renderCharacteristicChips("userCharacteristicWords", u.characteristicWords);
+        renderWordChips("userTopEmojis", u.topEmojis, false);
+        renderWordChips("userTopSuffixes", u.topSuffixes, false);
+
+        document.getElementById("userKeywordSummary").innerHTML = `
+          <span class="word-chip strong">感謝 ${fmt(u.thanks)}</span>
+          <span class="word-chip strong">謝罪 ${fmt(u.sorry)}</span>
+          <span class="word-chip strong">笑い ${fmt(u.laugh)}</span>
+          <span class="word-chip strong">質問 ${fmt(u.question)}</span>
+        `;
 
         const speedScore = u.avgReply == null
           ? 0
@@ -2107,6 +2978,40 @@
             }
           }
         });
+      }
+
+      function renderWordChips(id, entries, strong = false) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (!entries || !entries.length) {
+          el.innerHTML = `<span class="small-muted">データなし</span>`;
+          return;
+        }
+
+        el.innerHTML = entries.map(([word, count]) => `
+          <span class="word-chip ${strong ? "strong" : ""}">
+            ${esc(word)}
+            <span class="small-muted">${fmt(count)}</span>
+          </span>
+        `).join("");
+      }
+
+      function renderCharacteristicChips(id, entries) {
+        const el = document.getElementById(id);
+        if (!el) return;
+
+        if (!entries || !entries.length) {
+          el.innerHTML = `<span class="small-muted">データなし</span>`;
+          return;
+        }
+
+        el.innerHTML = entries.map(([word, count, score]) => `
+          <span class="word-chip strong" title="出現数: ${fmt(count)}, 特徴度: ${fmt(score, 2)}">
+            ${esc(word)}
+            <span class="small-muted">${fmt(count)}</span>
+          </span>
+        `).join("");
       }
 
       function renderMemberReplyChart() {
@@ -2280,8 +3185,15 @@
               thanks: u.thanks,
               sorry: u.sorry,
               laugh: u.laugh,
-              question: u.question
+              question: u.question,
+              topWords: u.topWords,
+              characteristicWords: u.characteristicWords,
+              topEmojis: u.topEmojis,
+              topSuffixes: u.topSuffixes
             })),
+            hotDays: state.stats.hotDays,
+            replyPairList: state.stats.replyPairList,
+            globalCharacteristicWords: state.stats.globalCharacteristicWords,
             messages: state.messages
           };
 
