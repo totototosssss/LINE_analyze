@@ -1,651 +1,2306 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>LINE Talk Analytics - Dashboard</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        :root {
-            --primary-color: #06c755;
-            --bg-color: #f0f2f5;
-            --card-bg: #ffffff;
-            --sidebar-width: 280px;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: #333;
-            height: 100vh;
-            overflow: hidden;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LINE Talk Analytics Pro</title>
 
-        /* Layout Structure */
-        #app-container {
-            display: flex;
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden;
-        }
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-        /* Sidebar (File Input & Branding) */
-        aside {
-            width: 100%;
-            height: 100%;
-            background: white;
-            z-index: 1000;
-            position: absolute;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: transform 0.4s ease-in-out;
-        }
-        aside.loaded {
-            transform: translateY(-100%);
-        }
+  <style>
+    :root {
+      --line: #06c755;
+      --bg: #f4f7f8;
+      --card: #ffffff;
+      --text: #17202a;
+      --muted: #6c757d;
+      --border: #e9ecef;
+      --shadow: 0 12px 30px rgba(15, 23, 42, 0.07);
+      --radius: 20px;
+    }
 
-        /* Main Dashboard */
-        main {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-            overflow: hidden;
-            opacity: 0;
-            transition: opacity 0.5s ease 0.4s;
-        }
-        main.visible { opacity: 1; }
+    * {
+      box-sizing: border-box;
+    }
 
-        /* Dashboard Grid */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: var(--sidebar-width) 1fr;
-            grid-template-rows: auto 1fr;
-            height: 100%;
-            gap: 0;
-        }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Helvetica Neue",
+        Arial,
+        "Noto Sans JP",
+        sans-serif;
+    }
 
-        /* Member List Panel */
-        .member-panel {
-            grid-row: 1 / -1;
-            background: white;
-            border-right: 1px solid #e0e0e0;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .member-header {
-            padding: 20px;
-            border-bottom: 1px solid #f0f0f0;
-            font-weight: bold;
-            color: #555;
-        }
-        .member-list {
-            overflow-y: auto;
-            flex: 1;
-        }
-        .member-item {
-            padding: 15px 20px;
-            border-bottom: 1px solid #f9f9f9;
-            cursor: pointer;
-            transition: background 0.2s;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .member-item:hover { background-color: #f8f9fa; }
-        .member-item.active {
-            background-color: #e8f5e9;
-            border-left: 4px solid var(--primary-color);
-        }
-        .member-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
-        .member-count { font-size: 0.8rem; color: #888; background: #eee; padding: 2px 8px; border-radius: 10px; }
+    .hidden {
+      display: none !important;
+    }
 
-        /* Content Area */
-        .content-area {
-            padding: 20px;
-            overflow-y: auto;
-            background: var(--bg-color);
-        }
+    .upload-screen {
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 20% 12%, rgba(6, 199, 85, 0.18), transparent 30%),
+        radial-gradient(circle at 82% 20%, rgba(13, 110, 253, 0.12), transparent 26%),
+        linear-gradient(180deg, #ffffff, #eef3f5);
+    }
 
-        /* Cards */
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-            margin-bottom: 20px;
-            height: 100%;
-        }
-        .card-title-sm {
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #888;
-            margin-bottom: 10px;
-            font-weight: 700;
-        }
+    .upload-card {
+      width: min(980px, 100%);
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      box-shadow: var(--shadow);
+      border-radius: 30px;
+      padding: 34px;
+      backdrop-filter: blur(12px);
+    }
 
-        /* Detail Grid */
-        .detail-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .user-hero {
-            grid-column: span 3;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 10px;
-        }
-        .avatar-placeholder {
-            width: 60px; height: 60px;
-            background: linear-gradient(135deg, #06c755, #2ecc71);
-            color: white;
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.5rem; font-weight: bold;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--line);
+      font-weight: 800;
+      margin-bottom: 16px;
+    }
 
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            body { overflow: auto; }
-            #app-container { height: auto; overflow: visible; display: block; }
-            aside.loaded { display: none; } /* Hide logic simpler for mobile */
-            main { height: auto; overflow: visible; opacity: 1; display: none; }
-            main.visible { display: block; }
+    .brand-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--line);
+      display: inline-block;
+    }
 
-            .dashboard-grid {
-                display: flex;
-                flex-direction: column;
-                height: auto;
-            }
-            .member-panel {
-                height: 300px; /* Fixed height for list on mobile */
-                order: 2;
-            }
-            .content-area {
-                order: 1;
-                padding: 15px;
-                height: auto;
-            }
-            .detail-grid { grid-template-columns: 1fr; }
-            .user-hero { grid-column: span 1; }
-        }
+    .main-title {
+      font-weight: 900;
+      letter-spacing: -0.035em;
+      line-height: 1.16;
+    }
 
-        /* Drop Zone */
-        .drop-zone {
-            border: 2px dashed #ccc;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-            max-width: 500px;
-            width: 90%;
-        }
-        .drop-zone:hover { border-color: var(--primary-color); background: rgba(6,199,85,0.05); }
+    .drop-zone {
+      border: 2px dashed #c8d1d7;
+      border-radius: 26px;
+      background: #fbfdff;
+      padding: 38px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.18s ease;
+    }
 
-        /* Loading */
-        #loading-overlay {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.9);
-            z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column;
-        }
-    </style>
+    .drop-zone:hover,
+    .drop-zone.dragover {
+      border-color: var(--line);
+      background: rgba(6, 199, 85, 0.07);
+      transform: translateY(-1px);
+    }
+
+    .privacy-box {
+      background: #f8fafb;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      border-radius: 16px;
+      padding: 13px 15px;
+      font-size: 0.93rem;
+    }
+
+    .loading {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.86);
+      backdrop-filter: blur(8px);
+    }
+
+    .dashboard {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .dashboard.visible {
+      display: block;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 18px;
+    }
+
+    .content {
+      max-width: 1540px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-btn {
+      border: 1px solid var(--border);
+      background: white;
+      color: #495057;
+      border-radius: 999px;
+      padding: 8px 13px;
+      font-size: 0.93rem;
+      font-weight: 750;
+      cursor: pointer;
+    }
+
+    .tab-btn.active {
+      color: white;
+      background: var(--line);
+      border-color: var(--line);
+    }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .metric-card,
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      border-radius: var(--radius);
+    }
+
+    .metric-card {
+      padding: 16px;
+    }
+
+    .metric-label {
+      font-size: 0.76rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .metric-value {
+      margin-top: 5px;
+      line-height: 1.1;
+      font-size: 1.6rem;
+      font-weight: 900;
+    }
+
+    .metric-sub {
+      margin-top: 4px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .panel {
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .panel-title {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .panel-title h2 {
+      font-size: 1.05rem;
+      font-weight: 900;
+      margin: 0;
+    }
+
+    .small-muted {
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .layout-2 {
+      display: grid;
+      grid-template-columns: 1.25fr 0.75fr;
+      gap: 16px;
+    }
+
+    .layout-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .chart-box {
+      position: relative;
+      height: 320px;
+    }
+
+    .chart-box-sm {
+      position: relative;
+      height: 255px;
+    }
+
+    .member-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
+    .member-list {
+      max-height: 650px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .member-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 11px 12px;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      background: #fff;
+      transition: 0.15s ease;
+    }
+
+    .member-item:hover {
+      background: #f8f9fa;
+    }
+
+    .member-item.active {
+      border-color: rgba(6, 199, 85, 0.4);
+      background: rgba(6, 199, 85, 0.08);
+      box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.08);
+    }
+
+    .avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      flex: 0 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: 900;
+      background: linear-gradient(135deg, #06c755, #4cd964);
+    }
+
+    .name-truncate {
+      max-width: 180px;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      font-weight: 800;
+    }
+
+    .count-pill {
+      background: #f1f3f5;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 0.8rem;
+      color: #495057;
+      font-weight: 800;
+    }
+
+    .search-input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 9px 14px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: rgba(6, 199, 85, 0.45);
+      box-shadow: 0 0 0 3px rgba(6, 199, 85, 0.12);
+    }
+
+    .heatmap-wrap {
+      overflow: auto;
+    }
+
+    .heatmap {
+      display: grid;
+      grid-template-columns: 70px repeat(24, minmax(34px, 1fr));
+      gap: 4px;
+      min-width: 980px;
+      align-items: center;
+    }
+
+    .heat-label,
+    .heat-hour,
+    .heat-cell {
+      height: 31px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.73rem;
+    }
+
+    .heat-label {
+      justify-content: flex-end;
+      padding-right: 8px;
+      color: var(--muted);
+      font-weight: 850;
+    }
+
+    .heat-hour {
+      color: var(--muted);
+      font-weight: 750;
+    }
+
+    .heat-cell {
+      background: #edf2f4;
+      color: #17202a;
+      font-weight: 850;
+    }
+
+    .raw-viewer {
+      min-height: 430px;
+      max-height: 660px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      background: #111418;
+      color: #e9ecef;
+      border-radius: 17px;
+      padding: 15px;
+      line-height: 1.55;
+      font-family:
+        ui-monospace,
+        SFMono-Regular,
+        Menlo,
+        Monaco,
+        Consolas,
+        "Liberation Mono",
+        monospace;
+      font-size: 0.82rem;
+    }
+
+    .file-list {
+      max-height: 560px;
+      overflow: auto;
+    }
+
+    .file-item {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 12px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+
+    .file-item.active {
+      border-color: var(--line);
+      background: rgba(6, 199, 85, 0.08);
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      white-space: nowrap;
+    }
+
+    .message-table td {
+      vertical-align: top;
+    }
+
+    mark {
+      background: #fff3cd;
+      color: #111418;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+
+    @media (max-width: 1120px) {
+      .metric-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .layout-2,
+      .layout-3,
+      .member-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .upload-card {
+        padding: 21px;
+        border-radius: 22px;
+      }
+
+      .drop-zone {
+        padding: 28px 16px;
+      }
+
+      .content {
+        padding: 12px;
+      }
+
+      .metric-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .metric-card,
+      .panel {
+        border-radius: 16px;
+        padding: 14px;
+      }
+
+      .metric-value {
+        font-size: 1.32rem;
+      }
+
+      .chart-box {
+        height: 285px;
+      }
+
+      .chart-box-sm {
+        height: 250px;
+      }
+
+      .topbar .btn-text {
+        display: none;
+      }
+
+      .member-list {
+        max-height: 380px;
+      }
+    }
+  </style>
 </head>
+
 <body>
+  <div class="loading" id="loading">
+    <div class="spinner-border text-success mb-3" role="status"></div>
+    <div class="fw-bold">解析中...</div>
+  </div>
 
-    <div id="loading-overlay">
-        <div class="spinner-border text-success mb-3" role="status"></div>
-        <div class="fw-bold">解析中...</div>
+  <section class="upload-screen" id="uploadScreen">
+    <div class="upload-card">
+      <div class="row align-items-center g-4">
+        <div class="col-lg-5">
+          <div class="brand">
+            <span class="brand-dot"></span>
+            <span>LINE Talk Analytics Pro</span>
+          </div>
+
+          <h1 class="main-title mb-3">
+            LINEトーク履歴を<br>
+            時間・関係性・返信速度まで解析
+          </h1>
+
+          <p class="text-muted mb-4">
+            LINEのトーク履歴txtを読み込み、発言数・時間帯・曜日・返信速度・会話開始・メンバー別特徴をまとめて可視化します。
+          </p>
+
+          <div class="privacy-box">
+            <i class="bi bi-shield-lock-fill text-success me-1"></i>
+            選択したtxtファイルは誰にも送信されません。解析はすべてこの端末のブラウザ内で行われます。
+          </div>
+        </div>
+
+        <div class="col-lg-7">
+          <div class="drop-zone" id="dropZone">
+            <i class="bi bi-file-earmark-text display-3 text-success d-block mb-3"></i>
+            <h4 class="fw-bold">LINEのトーク履歴 .txt を選択</h4>
+            <p class="text-muted mb-2">複数ファイル対応 / ドラッグ&ドロップ対応</p>
+            <button class="btn btn-success rounded-pill px-4 mt-2" type="button">
+              <i class="bi bi-upload me-1"></i>
+              ファイルを選ぶ
+            </button>
+            <input type="file" id="fileInput" accept=".txt,text/plain" multiple hidden>
+          </div>
+
+          <div id="errorMsg" class="mt-3 text-danger small fw-bold"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="dashboard" id="dashboard">
+    <div class="topbar">
+      <div class="d-flex align-items-center justify-content-between gap-2">
+        <div class="d-flex align-items-center gap-2">
+          <span class="brand-dot"></span>
+          <div>
+            <div class="fw-bold">LINE Talk Analytics Pro</div>
+            <div class="small-muted" id="summaryLine">-</div>
+          </div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-secondary rounded-pill btn-sm" id="exportJsonBtn">
+            <i class="bi bi-download me-1"></i>
+            <span class="btn-text">JSON保存</span>
+          </button>
+          <button class="btn btn-outline-success rounded-pill btn-sm" id="addFileBtn">
+            <i class="bi bi-plus-lg me-1"></i>
+            <span class="btn-text">txt追加</span>
+          </button>
+          <button class="btn btn-success rounded-pill btn-sm" id="resetBtn">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>
+            <span class="btn-text">最初に戻る</span>
+          </button>
+        </div>
+      </div>
     </div>
 
-    <div id="app-container">
-        <aside id="uploadScreen">
-            <div class="mb-4">
-                <i class="bi bi-chat-dots-fill text-success" style="font-size: 4rem;"></i>
-            </div>
-            <h2 class="fw-bold mb-2">LINE Analysis Dashboard</h2>
-            <p class="text-muted mb-5">統計解析・多人数対応版</p>
+    <main class="content">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="overview">
+          <i class="bi bi-graph-up me-1"></i>概要
+        </button>
+        <button class="tab-btn" data-tab="time">
+          <i class="bi bi-clock-history me-1"></i>時間帯分析
+        </button>
+        <button class="tab-btn" data-tab="members">
+          <i class="bi bi-people me-1"></i>メンバー分析
+        </button>
+        <button class="tab-btn" data-tab="messages">
+          <i class="bi bi-chat-dots me-1"></i>メッセージ一覧
+        </button>
+        <button class="tab-btn" data-tab="files">
+          <i class="bi bi-files me-1"></i>txt閲覧
+        </button>
+      </div>
 
-            <div class="drop-zone shadow-sm" id="dropZone">
-                <i class="bi bi-file-earmark-text display-4 mb-3 d-block text-secondary"></i>
-                <h5 class="fw-bold">トーク履歴(.txt)を選択</h5>
-                <p class="small text-muted mb-0">またはここにドラッグ＆ドロップ</p>
-                <input type="file" id="fileInput" accept=".txt" hidden>
-            </div>
-            <p id="errorMsg" class="text-danger mt-3 small fw-bold"></p>
-            <div class="mt-4 small text-muted">
-                <i class="bi bi-lock-fill"></i> データは端末内でのみ処理されます
-            </div>
-        </aside>
+      <div id="tab-overview">
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">総メッセージ</div>
+            <div class="metric-value" id="mTotal">-</div>
+            <div class="metric-sub">有効メッセージ行</div>
+          </div>
 
-        <main id="mainDashboard">
-            <div class="dashboard-grid">
-                
-                <div class="member-panel shadow-sm">
-                    <div class="member-header d-flex justify-content-between align-items-center">
-                        <span><i class="bi bi-people-fill me-2"></i>メンバー</span>
-                        <span class="badge bg-secondary" id="totalMembers">0</span>
-                    </div>
-                    <div class="member-list" id="memberList">
-                        </div>
+          <div class="metric-card">
+            <div class="metric-label">解析期間</div>
+            <div class="metric-value" id="mDays">-</div>
+            <div class="metric-sub" id="mRange">-</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">1日平均</div>
+            <div class="metric-value text-success" id="mDailyAvg">-</div>
+            <div class="metric-sub">messages/day</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">メンバー数</div>
+            <div class="metric-value" id="mMembers">-</div>
+            <div class="metric-sub">送信者数</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">非テキスト率</div>
+            <div class="metric-value text-warning" id="mNonText">-</div>
+            <div class="metric-sub">スタンプ・画像など</div>
+          </div>
+
+          <div class="metric-card">
+            <div class="metric-label">最盛時間</div>
+            <div class="metric-value text-primary" id="mPeakHour">-</div>
+            <div class="metric-sub" id="mPeakSub">-</div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-activity text-success me-1"></i>日別メッセージ推移</h2>
+              <span class="small-muted">7日移動平均つき</span>
+            </div>
+            <div class="chart-box">
+              <canvas id="dailyChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-trophy text-warning me-1"></i>発言数ランキング</h2>
+              <span class="small-muted">上位15名</span>
+            </div>
+            <div class="chart-box">
+              <canvas id="rankingChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="layout-3">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>発言タイプ比率</h2>
+            </div>
+            <div class="chart-box-sm">
+              <canvas id="typeChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>曜日別メッセージ数</h2>
+            </div>
+            <div class="chart-box-sm">
+              <canvas id="weekdayChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>会話間隔分布</h2>
+            </div>
+            <div class="chart-box-sm">
+              <canvas id="gapChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-time" class="hidden">
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-clock text-primary me-1"></i>24時間別メッセージ数</h2>
+              <span class="small-muted">全員合計</span>
+            </div>
+            <div class="chart-box">
+              <canvas id="hourChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-moon-stars text-dark me-1"></i>時間帯ゾーン比率</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="zoneChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">
+            <h2><i class="bi bi-grid-3x3-gap text-success me-1"></i>曜日×時間ヒートマップ</h2>
+            <span class="small-muted">濃いほど発言が多い</span>
+          </div>
+          <div class="heatmap-wrap">
+            <div class="heatmap" id="heatmap"></div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>月別推移</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="monthChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>返信速度分布</h2>
+              <span class="small-muted">送信者が変わった場合</span>
+            </div>
+            <div class="chart-box">
+              <canvas id="replyHistChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2>曜日別・時間帯ゾーン</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="weekdayZoneChart"></canvas>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2>累積メッセージ数</h2>
+            </div>
+            <div class="chart-box">
+              <canvas id="cumulativeChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-members" class="hidden">
+        <div class="member-grid">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-person-lines-fill text-success me-1"></i>メンバー</h2>
+            </div>
+            <input class="search-input mb-3" id="memberSearch" placeholder="名前で検索">
+            <div class="member-list" id="memberList"></div>
+          </div>
+
+          <div>
+            <div class="panel">
+              <div class="d-flex align-items-center gap-3 mb-3">
+                <div class="avatar" id="selectedAvatar">U</div>
+                <div class="min-w-0">
+                  <h2 class="mb-0 fw-bold" id="selectedName">-</h2>
+                  <div class="small-muted" id="selectedRank">-</div>
+                </div>
+              </div>
+
+              <div class="metric-grid" style="grid-template-columns: repeat(4, 1fr);">
+                <div class="metric-card shadow-none">
+                  <div class="metric-label">発言数</div>
+                  <div class="metric-value" id="uCount">-</div>
                 </div>
 
-                <div class="content-area">
-                    
-                    <div class="row mb-4">
-                        <div class="col-6 col-md-3">
-                            <div class="stat-card p-3 text-center">
-                                <div class="card-title-sm">総メッセージ</div>
-                                <div class="h3 fw-bold mb-0" id="valTotalMsg">-</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="stat-card p-3 text-center">
-                                <div class="card-title-sm">期間 (日)</div>
-                                <div class="h3 fw-bold mb-0" id="valPeriod">-</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="stat-card p-3 text-center">
-                                <div class="card-title-sm">スタンプ率</div>
-                                <div class="h3 fw-bold text-warning mb-0" id="valStickerRate">-</div>
-                            </div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="stat-card p-3 text-center">
-                                <div class="card-title-sm">1日平均</div>
-                                <div class="h3 fw-bold text-success mb-0" id="valDailyAvg">-</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="userDetailArea" class="mb-4">
-                        <div class="user-hero">
-                            <div class="avatar-placeholder" id="userAvatar">U</div>
-                            <div>
-                                <h3 class="fw-bold mb-0" id="userName">Select User</h3>
-                                <div class="text-muted small" id="userRank">ランキング -位</div>
-                            </div>
-                        </div>
-
-                        <div class="detail-grid">
-                            <div class="stat-card" style="grid-column: span 1; min-height: 300px;">
-                                <div class="card-title-sm">ユーザー特性</div>
-                                <div style="height: 250px; position: relative;">
-                                    <canvas id="radarChart"></canvas>
-                                </div>
-                            </div>
-
-                            <div class="stat-card" style="grid-column: span 2;">
-                                <div class="card-title-sm">アクティビティ詳細</div>
-                                <div class="row g-4 mt-1">
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">送信数</div>
-                                        <div class="fs-4 fw-bold" id="uMsgCount">-</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">スタンプ使用</div>
-                                        <div class="fs-4 fw-bold" id="uStickerCount">-</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">平均返信(分)</div>
-                                        <div class="fs-4 fw-bold" id="uReplyAvg">-</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">夜型度 (23-4時)</div>
-                                        <div class="progress mt-2" style="height: 6px;">
-                                            <div class="progress-bar bg-dark" id="barNight" style="width: 0%"></div>
-                                        </div>
-                                        <div class="small fw-bold mt-1" id="valNight">-</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">会話開始回数</div>
-                                        <div class="fs-4 fw-bold text-primary" id="uInit">-</div>
-                                    </div>
-                                    <div class="col-6 col-md-4">
-                                        <div class="small text-muted">感謝 / 謝罪</div>
-                                        <div class="small fw-bold text-primary">Thanks: <span id="uThanks">-</span></div>
-                                        <div class="small fw-bold text-secondary">Sorry: <span id="uSorry">-</span></div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="stat-card">
-                        <div class="card-title-sm">全体メッセージ推移</div>
-                        <div style="height: 250px; width: 100%;">
-                            <canvas id="lineChart"></canvas>
-                        </div>
-                    </div>
-
+                <div class="metric-card shadow-none">
+                  <div class="metric-label">平均文字数</div>
+                  <div class="metric-value" id="uAvgLen">-</div>
                 </div>
+
+                <div class="metric-card shadow-none">
+                  <div class="metric-label">平均返信</div>
+                  <div class="metric-value" id="uReply">-</div>
+                </div>
+
+                <div class="metric-card shadow-none">
+                  <div class="metric-label">夜型度</div>
+                  <div class="metric-value" id="uNight">-</div>
+                </div>
+              </div>
             </div>
-        </main>
-    </div>
 
-    <script>
-        // CONFIG
-        const CONFIG = {
-            ignoreNames: ['保存日時', 'System', 'システム', '', 'トーク履歴'],
-            ignorePatterns: [/が退出しました/, /通話をキャンセル/, /グループに参加/, /アルバムを作成/, /ノートを作成/, /通話時間/, /音声通話/],
-            keywords: {
-                gratitude: ['ありがとう', 'あざ', 'サンキュー', '感謝', 'thanks'],
-                apology: ['ごめん', 'すまん', '申し訳', '謝', 'sorry']
+            <div class="layout-2">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>ユーザー特性レーダー</h2>
+                </div>
+                <div class="chart-box-sm">
+                  <canvas id="userRadarChart"></canvas>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>ユーザー時間帯</h2>
+                </div>
+                <div class="chart-box-sm">
+                  <canvas id="userHourChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="layout-2">
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>ユーザー曜日別</h2>
+                </div>
+                <div class="chart-box-sm">
+                  <canvas id="userWeekdayChart"></canvas>
+                </div>
+              </div>
+
+              <div class="panel">
+                <div class="panel-title">
+                  <h2>メンバー別返信速度</h2>
+                </div>
+                <div class="chart-box-sm">
+                  <canvas id="memberReplyChart"></canvas>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-title">
+                <h2>メンバー比較表</h2>
+              </div>
+
+              <div class="table-wrap">
+                <table class="table table-sm table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>名前</th>
+                      <th>発言</th>
+                      <th>比率</th>
+                      <th>平均文字数</th>
+                      <th>スタンプ率</th>
+                      <th>夜型度</th>
+                      <th>平均返信</th>
+                      <th>会話開始</th>
+                      <th>感謝</th>
+                      <th>謝罪</th>
+                      <th>笑い</th>
+                      <th>質問</th>
+                    </tr>
+                  </thead>
+                  <tbody id="memberTable"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-messages" class="hidden">
+        <div class="panel">
+          <div class="panel-title">
+            <h2><i class="bi bi-search text-success me-1"></i>メッセージ検索</h2>
+            <span class="small-muted">最大1000件表示</span>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <div class="col-md-5">
+              <input class="search-input" id="msgSearch" placeholder="本文・名前検索">
+            </div>
+
+            <div class="col-md-3">
+              <select class="form-select rounded-pill" id="senderFilter"></select>
+            </div>
+
+            <div class="col-md-2">
+              <input type="date" class="form-control rounded-pill" id="dateFrom">
+            </div>
+
+            <div class="col-md-2">
+              <input type="date" class="form-control rounded-pill" id="dateTo">
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table class="table table-sm table-hover message-table">
+              <thead>
+                <tr>
+                  <th>日時</th>
+                  <th>送信者</th>
+                  <th>種類</th>
+                  <th>本文</th>
+                  <th>ファイル</th>
+                </tr>
+              </thead>
+              <tbody id="messageTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-files" class="hidden">
+        <div class="layout-2">
+          <div class="panel">
+            <div class="panel-title">
+              <h2><i class="bi bi-paperclip text-success me-1"></i>読み込んだtxt</h2>
+              <span class="small-muted" id="fileCountLabel">0件</span>
+            </div>
+            <div class="file-list" id="fileList"></div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">
+              <h2 id="rawTitle">生ログ</h2>
+              <button class="btn btn-outline-secondary btn-sm rounded-pill" id="copyRawBtn">
+                <i class="bi bi-clipboard me-1"></i>
+                コピー
+              </button>
+            </div>
+
+            <input class="search-input mb-3" id="rawSearch" placeholder="生ログ内検索">
+            <div class="raw-viewer" id="rawViewer">ファイルを選択してください。</div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <script>
+    (() => {
+      const CONFIG = {
+        ignoreNames: [
+          "保存日時",
+          "System",
+          "システム",
+          "",
+          "トーク履歴"
+        ],
+        systemPatterns: [
+          /が退出しました/,
+          /が参加しました/,
+          /を招待しました/,
+          /グループに参加/,
+          /アルバムを作成/,
+          /ノートを作成/,
+          /通話をキャンセル/,
+          /不在着信/,
+          /音声通話/,
+          /ビデオ通話/,
+          /通話時間/,
+          /メッセージの送信を取り消しました/
+        ],
+        keywords: {
+          thanks: [
+            "ありがとう",
+            "ありがと",
+            "あざ",
+            "サンキュー",
+            "感謝",
+            "thanks",
+            "thank you",
+            "thx"
+          ],
+          sorry: [
+            "ごめん",
+            "すまん",
+            "申し訳",
+            "謝",
+            "sorry",
+            "sry"
+          ],
+          laugh: [
+            "笑",
+            "草",
+            "www",
+            "ｗｗｗ",
+            "w",
+            "WW",
+            "😂",
+            "🤣"
+          ],
+          question: [
+            "?",
+            "？",
+            "どう",
+            "なぜ",
+            "なんで",
+            "いつ",
+            "どこ",
+            "誰",
+            "どれ"
+          ]
+        },
+        dayNames: ["日", "月", "火", "水", "木", "金", "土"]
+      };
+
+      const els = {
+        uploadScreen: document.getElementById("uploadScreen"),
+        dashboard: document.getElementById("dashboard"),
+        dropZone: document.getElementById("dropZone"),
+        fileInput: document.getElementById("fileInput"),
+        loading: document.getElementById("loading"),
+        errorMsg: document.getElementById("errorMsg"),
+        addFileBtn: document.getElementById("addFileBtn"),
+        resetBtn: document.getElementById("resetBtn")
+      };
+
+      let state = {
+        files: [],
+        messages: [],
+        stats: null,
+        charts: {},
+        selectedUser: null,
+        selectedFileIndex: 0
+      };
+
+      const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "\"": "&quot;",
+        "'": "&#39;"
+      }[c]));
+
+      const fmt = (n, d = 0) => Number(n || 0).toLocaleString(
+        undefined,
+        {
+          maximumFractionDigits: d,
+          minimumFractionDigits: d
+        }
+      );
+
+      const pct = (x, d = 1) => `${((x || 0) * 100).toFixed(d)}%`;
+
+      const dateKey = dt => {
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      };
+
+      const monthKey = dt => {
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}`;
+      };
+
+      function destroyChart(id) {
+        if (state.charts[id]) {
+          state.charts[id].destroy();
+          delete state.charts[id];
+        }
+      }
+
+      function chart(id, config) {
+        destroyChart(id);
+        const ctx = document.getElementById(id).getContext("2d");
+        state.charts[id] = new Chart(ctx, config);
+      }
+
+      function colorByValue(v, max) {
+        if (!max) return "#eef2f4";
+        const a = Math.min(1, v / max);
+        const light = 96 - a * 48;
+        return `hsl(145, 72%, ${light}%)`;
+      }
+
+      els.dropZone.addEventListener("click", () => els.fileInput.click());
+      els.addFileBtn.addEventListener("click", () => els.fileInput.click());
+      els.resetBtn.addEventListener("click", () => location.reload());
+
+      els.dropZone.addEventListener("dragover", e => {
+        e.preventDefault();
+        els.dropZone.classList.add("dragover");
+      });
+
+      els.dropZone.addEventListener("dragleave", () => {
+        els.dropZone.classList.remove("dragover");
+      });
+
+      els.dropZone.addEventListener("drop", e => {
+        e.preventDefault();
+        els.dropZone.classList.remove("dragover");
+        handleFiles(e.dataTransfer.files);
+      });
+
+      els.fileInput.addEventListener("change", e => {
+        handleFiles(e.target.files);
+      });
+
+      document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+
+          const target = btn.dataset.tab;
+
+          ["overview", "time", "members", "messages", "files"].forEach(t => {
+            document.getElementById(`tab-${t}`).classList.toggle("hidden", t !== target);
+          });
+
+          requestAnimationFrame(() => {
+            Object.values(state.charts).forEach(c => c.resize());
+          });
+        });
+      });
+
+      async function handleFiles(fileList) {
+        const files = [...fileList].filter(f => {
+          return f.name.toLowerCase().endsWith(".txt") || f.type.includes("text");
+        });
+
+        if (!files.length) {
+          els.errorMsg.textContent = "txtファイルを選択してください。";
+          return;
+        }
+
+        els.loading.style.display = "flex";
+        els.errorMsg.textContent = "";
+
+        try {
+          const loaded = [];
+
+          for (const f of files) {
+            const text = await readFileSmart(f);
+            loaded.push({
+              name: f.name,
+              size: f.size,
+              raw: text,
+              loadedAt: new Date()
+            });
+          }
+
+          state.files.push(...loaded);
+
+          const parsed = [];
+          state.files.forEach((f, idx) => {
+            parsed.push(...parseLineText(f.raw, f.name, idx));
+          });
+
+          if (!parsed.length) {
+            throw new Error("有効なLINEメッセージ行が見つかりません。");
+          }
+
+          parsed.sort((a, b) => a.timestamp - b.timestamp);
+
+          state.messages = parsed;
+          state.stats = analyze(parsed);
+
+          renderAll();
+
+          els.uploadScreen.style.display = "none";
+          els.dashboard.classList.add("visible");
+        } catch (err) {
+          els.errorMsg.textContent = "解析エラー: " + err.message;
+          console.error(err);
+        } finally {
+          els.loading.style.display = "none";
+          els.fileInput.value = "";
+        }
+      }
+
+      function readFileSmart(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onerror = () => reject(reader.error);
+
+          reader.onload = () => {
+            const text = reader.result || "";
+
+            if (text.includes("�")) {
+              const reader2 = new FileReader();
+
+              reader2.onerror = () => resolve(text);
+              reader2.onload = () => resolve(reader2.result || text);
+
+              reader2.readAsText(file, "Shift_JIS");
+            } else {
+              resolve(text);
             }
+          };
+
+          reader.readAsText(file, "UTF-8");
+        });
+      }
+
+      function normalizeDate(y, m, d) {
+        return `${Number(y)}-${String(Number(m)).padStart(2, "0")}-${String(Number(d)).padStart(2, "0")}`;
+      }
+
+      function parseLineText(text, fileName, fileIndex) {
+        const lines = text.split(/\r?\n/);
+        const data = [];
+        let currentDate = null;
+        let lastMsg = null;
+
+        const nowYear = new Date().getFullYear();
+
+        const datePatterns = [
+          /^(\d{4})[\/\.\-年](\d{1,2})[\/\.\-月](\d{1,2})日?/,
+          /^(\d{1,2})[\/\.](\d{1,2})\s*\([^)]*\)$/,
+          /^(\d{1,2})月(\d{1,2})日/
+        ];
+
+        for (let rawLine of lines) {
+          let line = rawLine.replace(/\u200e|\u200f/g, "").trimEnd();
+
+          if (!line.trim()) continue;
+
+          let m = line.trim().match(datePatterns[0]);
+          if (m) {
+            currentDate = normalizeDate(m[1], m[2], m[3]);
+            continue;
+          }
+
+          m = line.trim().match(datePatterns[1]);
+          if (m) {
+            currentDate = normalizeDate(nowYear, m[1], m[2]);
+            continue;
+          }
+
+          m = line.trim().match(datePatterns[2]);
+          if (m) {
+            currentDate = normalizeDate(nowYear, m[1], m[2]);
+            continue;
+          }
+
+          if (!currentDate) continue;
+
+          const parts = line.split("\t");
+
+          if (parts.length >= 3 && /^\d{1,2}:\d{2}$/.test(parts[0].trim())) {
+            const time = parts[0].trim();
+            const sender = parts[1].trim();
+
+            if (CONFIG.ignoreNames.includes(sender)) continue;
+
+            let content = parts.slice(2).join("\t").trim();
+
+            if (CONFIG.systemPatterns.some(p => p.test(content) || p.test(sender))) {
+              continue;
+            }
+
+            if (content.startsWith("\"") && content.endsWith("\"")) {
+              content = content.slice(1, -1);
+            }
+
+            const [hh, mm] = time.split(":").map(Number);
+            const timestamp = new Date(
+              `${currentDate}T${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}:00`
+            );
+
+            if (isNaN(timestamp.getTime())) continue;
+
+            let type = "text";
+
+            if (/\[スタンプ\]|\[Sticker\]|スタンプ$/.test(content)) {
+              type = "sticker";
+            } else if (/\[写真\]|\[画像\]|\[動画\]|\[Photo\]|\[Video\]/.test(content)) {
+              type = "media";
+            } else if (/\[ファイル\]|\[File\]/.test(content)) {
+              type = "file";
+            } else if (/\[ボイスメッセージ\]|\[音声\]/.test(content)) {
+              type = "voice";
+            }
+
+            const msg = {
+              id: data.length,
+              date: currentDate,
+              time,
+              timestamp,
+              weekday: timestamp.getDay(),
+              hour: hh,
+              minute: mm,
+              sender,
+              content,
+              type,
+              fileName,
+              fileIndex
+            };
+
+            data.push(msg);
+            lastMsg = msg;
+          } else if (lastMsg && data.length) {
+            const tail = line.trim();
+
+            if (tail && !tail.match(/^[-=]{3,}/)) {
+              lastMsg.content += "\n" + tail;
+            }
+          }
+        }
+
+        return data;
+      }
+
+      function analyze(messages) {
+        const users = {};
+        const daily = {};
+        const monthly = {};
+        const hourly = Array(24).fill(0);
+        const weekday = Array(7).fill(0);
+        const heat = Array.from({ length: 7 }, () => Array(24).fill(0));
+        const typeCounts = {};
+        const gapsMin = [];
+        const replyMins = [];
+        const zones = {
+          深夜: 0,
+          朝: 0,
+          昼: 0,
+          夕方: 0,
+          夜: 0
         };
 
-        let charts = {};
-        let globalStats = null;
+        const weekdayZones = Array.from({ length: 7 }, () => ({
+          深夜: 0,
+          朝: 0,
+          昼: 0,
+          夕方: 0,
+          夜: 0
+        }));
 
-        // DOM Elements
-        const els = {
-            dropZone: document.getElementById('dropZone'),
-            fileInput: document.getElementById('fileInput'),
-            uploadScreen: document.getElementById('uploadScreen'),
-            mainDashboard: document.getElementById('mainDashboard'),
-            loading: document.getElementById('loading-overlay'),
-            errorMsg: document.getElementById('errorMsg'),
-            memberList: document.getElementById('memberList')
+        let last = null;
+
+        for (const msg of messages) {
+          const name = msg.sender;
+
+          if (!users[name]) {
+            users[name] = {
+              name,
+              count: 0,
+              text: 0,
+              sticker: 0,
+              media: 0,
+              file: 0,
+              voice: 0,
+              chars: 0,
+              hourly: Array(24).fill(0),
+              weekday: Array(7).fill(0),
+              thanks: 0,
+              sorry: 0,
+              laugh: 0,
+              question: 0,
+              initiation: 0,
+              replyTimes: [],
+              first: null,
+              last: null
+            };
+          }
+
+          const u = users[name];
+
+          u.count++;
+          u.hourly[msg.hour]++;
+          u.weekday[msg.weekday]++;
+          u.first = u.first ? Math.min(u.first, msg.timestamp) : msg.timestamp;
+          u.last = u.last ? Math.max(u.last, msg.timestamp) : msg.timestamp;
+
+          if (msg.type === "text") {
+            u.text++;
+            u.chars += msg.content.length;
+
+            for (const [key, arr] of Object.entries(CONFIG.keywords)) {
+              if (arr.some(k => msg.content.toLowerCase().includes(String(k).toLowerCase()))) {
+                u[key]++;
+              }
+            }
+          } else {
+            u[msg.type] = (u[msg.type] || 0) + 1;
+          }
+
+          daily[msg.date] = (daily[msg.date] || 0) + 1;
+          monthly[monthKey(msg.timestamp)] = (monthly[monthKey(msg.timestamp)] || 0) + 1;
+          hourly[msg.hour]++;
+          weekday[msg.weekday]++;
+          heat[msg.weekday][msg.hour]++;
+          typeCounts[msg.type] = (typeCounts[msg.type] || 0) + 1;
+
+          const zone = getZone(msg.hour);
+          zones[zone]++;
+          weekdayZones[msg.weekday][zone]++;
+
+          if (last) {
+            const diff = (msg.timestamp - last.timestamp) / 60000;
+
+            if (diff >= 0 && diff < 60 * 24 * 30) {
+              gapsMin.push(diff);
+            }
+
+            if (last.sender !== msg.sender && diff >= 0 && diff <= 12 * 60) {
+              u.replyTimes.push(diff);
+              replyMins.push(diff);
+            }
+
+            if (diff > 6 * 60 || (last.sender === msg.sender && diff > 12 * 60)) {
+              u.initiation++;
+            }
+          } else {
+            u.initiation++;
+          }
+
+          last = msg;
+        }
+
+        const userList = Object.values(users).sort((a, b) => b.count - a.count);
+
+        const maxCount = Math.max(...userList.map(u => u.count), 1);
+        const maxInit = Math.max(...userList.map(u => u.initiation), 1);
+
+        for (const u of userList) {
+          u.share = u.count / messages.length;
+          u.avgLen = u.text ? u.chars / u.text : 0;
+          u.stickerRate = u.count ? u.sticker / u.count : 0;
+
+          const night = u.hourly.slice(23).concat(u.hourly.slice(0, 5)).reduce((a, b) => a + b, 0);
+          u.nightRate = u.count ? night / u.count : 0;
+
+          u.avgReply = u.replyTimes.length
+            ? u.replyTimes.reduce((a, b) => a + b, 0) / u.replyTimes.length
+            : null;
+
+          u.medianReply = median(u.replyTimes);
+          u.activeScore = Math.min(100, 100 * u.count / maxCount);
+          u.initiationScore = Math.min(100, 100 * u.initiation / maxInit);
+        }
+
+        const start = messages[0].timestamp;
+        const end = messages[messages.length - 1].timestamp;
+        const days = Math.max(1, Math.floor((end - start) / 86400000) + 1);
+        const peakHour = hourly.indexOf(Math.max(...hourly));
+
+        return {
+          users,
+          userList,
+          daily,
+          monthly,
+          hourly,
+          weekday,
+          heat,
+          typeCounts,
+          gapsMin,
+          replyMins,
+          zones,
+          weekdayZones,
+          start,
+          end,
+          days,
+          total: messages.length,
+          peakHour
+        };
+      }
+
+      function getZone(hour) {
+        if (hour <= 4 || hour >= 23) return "深夜";
+        if (hour <= 10) return "朝";
+        if (hour <= 16) return "昼";
+        if (hour <= 19) return "夕方";
+        return "夜";
+      }
+
+      function median(arr) {
+        if (!arr || !arr.length) return null;
+
+        const a = [...arr].sort((x, y) => x - y);
+        const mid = Math.floor(a.length / 2);
+
+        if (a.length % 2) return a[mid];
+
+        return (a[mid - 1] + a[mid]) / 2;
+      }
+
+      function movingAverage(values, k = 7) {
+        return values.map((_, i) => {
+          const s = Math.max(0, i - k + 1);
+          const arr = values.slice(s, i + 1);
+          return arr.reduce((a, b) => a + b, 0) / arr.length;
+        });
+      }
+
+      function makeBins(values, thresholds, labels) {
+        const bins = Array(labels.length).fill(0);
+
+        for (const v of values) {
+          let i = thresholds.findIndex(t => v < t);
+
+          if (i === -1) i = labels.length - 1;
+
+          bins[i]++;
+        }
+
+        return {
+          labels,
+          values: bins
+        };
+      }
+
+      function renderAll() {
+        renderMetrics();
+        renderOverviewCharts();
+        renderTimeCharts();
+        renderMembers();
+        renderMessages();
+        renderFiles();
+        setupSearchHandlers();
+      }
+
+      function renderMetrics() {
+        const s = state.stats;
+
+        document.getElementById("summaryLine").textContent =
+          `${fmt(s.total)} messages / ${s.userList.length} members / ${dateKey(s.start)}〜${dateKey(s.end)}`;
+
+        document.getElementById("mTotal").textContent = fmt(s.total);
+        document.getElementById("mDays").textContent = fmt(s.days);
+        document.getElementById("mRange").textContent = `${dateKey(s.start)}〜${dateKey(s.end)}`;
+        document.getElementById("mDailyAvg").textContent = fmt(s.total / s.days, 1);
+        document.getElementById("mMembers").textContent = fmt(s.userList.length);
+
+        const nonText =
+          (s.typeCounts.sticker || 0) +
+          (s.typeCounts.media || 0) +
+          (s.typeCounts.file || 0) +
+          (s.typeCounts.voice || 0);
+
+        document.getElementById("mNonText").textContent = pct(nonText / s.total);
+        document.getElementById("mPeakHour").textContent = `${String(s.peakHour).padStart(2, "0")}:00`;
+        document.getElementById("mPeakSub").textContent = `${fmt(s.hourly[s.peakHour])} messages`;
+      }
+
+      function renderOverviewCharts() {
+        const s = state.stats;
+
+        const dailyLabels = Object.keys(s.daily).sort();
+        const dailyValues = dailyLabels.map(d => s.daily[d]);
+        const dailyMA = movingAverage(dailyValues, 7);
+
+        chart("dailyChart", {
+          type: "line",
+          data: {
+            labels: dailyLabels,
+            datasets: [
+              {
+                label: "日別",
+                data: dailyValues,
+                tension: 0.35,
+                fill: true,
+                pointRadius: 0,
+                borderWidth: 2
+              },
+              {
+                label: "7日移動平均",
+                data: dailyMA,
+                tension: 0.35,
+                pointRadius: 0,
+                borderWidth: 2
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            interaction: {
+              mode: "index",
+              intersect: false
+            },
+            plugins: {
+              legend: {
+                position: "bottom"
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  maxTicksLimit: 8
+                }
+              },
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const top = s.userList.slice(0, 15).reverse();
+
+        chart("rankingChart", {
+          type: "bar",
+          data: {
+            labels: top.map(u => u.name),
+            datasets: [
+              {
+                label: "発言数",
+                data: top.map(u => u.count),
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const typeLabels = Object.keys(s.typeCounts);
+
+        chart("typeChart", {
+          type: "doughnut",
+          data: {
+            labels: typeLabels,
+            datasets: [
+              {
+                data: typeLabels.map(k => s.typeCounts[k])
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom"
+              }
+            }
+          }
+        });
+
+        chart("weekdayChart", {
+          type: "bar",
+          data: {
+            labels: CONFIG.dayNames,
+            datasets: [
+              {
+                label: "メッセージ数",
+                data: s.weekday
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const gapBins = makeBins(
+          s.gapsMin,
+          [1, 5, 15, 30, 60, 180, 360, 720, 1440, 10080],
+          ["<1m", "1-5m", "5-15m", "15-30m", "30-60m", "1-3h", "3-6h", "6-12h", "12-24h", "1-7d", "7d+"]
+        );
+
+        chart("gapChart", {
+          type: "bar",
+          data: {
+            labels: gapBins.labels,
+            datasets: [
+              {
+                label: "回数",
+                data: gapBins.values
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderTimeCharts() {
+        const s = state.stats;
+
+        chart("hourChart", {
+          type: "bar",
+          data: {
+            labels: [...Array(24)].map((_, i) => `${i}`),
+            datasets: [
+              {
+                label: "メッセージ数",
+                data: s.hourly
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "時刻"
+                }
+              },
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const zoneLabels = Object.keys(s.zones);
+
+        chart("zoneChart", {
+          type: "polarArea",
+          data: {
+            labels: zoneLabels,
+            datasets: [
+              {
+                data: zoneLabels.map(k => s.zones[k])
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom"
+              }
+            }
+          }
+        });
+
+        renderHeatmap();
+
+        const monthLabels = Object.keys(s.monthly).sort();
+
+        chart("monthChart", {
+          type: "line",
+          data: {
+            labels: monthLabels,
+            datasets: [
+              {
+                label: "月別メッセージ数",
+                data: monthLabels.map(k => s.monthly[k]),
+                fill: true,
+                tension: 0.25,
+                pointRadius: 2
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const replyBins = makeBins(
+          s.replyMins,
+          [1, 3, 5, 10, 30, 60, 180, 360, 720],
+          ["<1m", "1-3m", "3-5m", "5-10m", "10-30m", "30-60m", "1-3h", "3-6h", "6-12h", "12h+"]
+        );
+
+        chart("replyHistChart", {
+          type: "bar",
+          data: {
+            labels: replyBins.labels,
+            datasets: [
+              {
+                label: "返信回数",
+                data: replyBins.values
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const zoneNames = ["深夜", "朝", "昼", "夕方", "夜"];
+
+        chart("weekdayZoneChart", {
+          type: "bar",
+          data: {
+            labels: CONFIG.dayNames,
+            datasets: zoneNames.map(z => ({
+              label: z,
+              data: s.weekdayZones.map(row => row[z])
+            }))
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom"
+              }
+            },
+            scales: {
+              x: {
+                stacked: true
+              },
+              y: {
+                stacked: true,
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        const dailyLabels = Object.keys(s.daily).sort();
+        let acc = 0;
+        const cumulative = dailyLabels.map(d => {
+          acc += s.daily[d];
+          return acc;
+        });
+
+        chart("cumulativeChart", {
+          type: "line",
+          data: {
+            labels: dailyLabels,
+            datasets: [
+              {
+                label: "累積メッセージ数",
+                data: cumulative,
+                fill: true,
+                tension: 0.2,
+                pointRadius: 0
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  maxTicksLimit: 8
+                }
+              },
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderHeatmap() {
+        const s = state.stats;
+        const root = document.getElementById("heatmap");
+        const max = Math.max(...s.heat.flat(), 1);
+
+        let html = "<div></div>";
+
+        html += [...Array(24)]
+          .map((_, h) => `<div class="heat-hour">${h}</div>`)
+          .join("");
+
+        for (let d = 0; d < 7; d++) {
+          html += `<div class="heat-label">${CONFIG.dayNames[d]}</div>`;
+
+          for (let h = 0; h < 24; h++) {
+            const v = s.heat[d][h];
+
+            html += `
+              <div
+                class="heat-cell"
+                style="background:${colorByValue(v, max)}"
+                title="${CONFIG.dayNames[d]}曜 ${h}:00 ${v}件"
+              >
+                ${v || ""}
+              </div>
+            `;
+          }
+        }
+
+        root.innerHTML = html;
+      }
+
+      function renderMembers(filter = "") {
+        const s = state.stats;
+        const list = s.userList.filter(u => {
+          return u.name.toLowerCase().includes(filter.toLowerCase());
+        });
+
+        const root = document.getElementById("memberList");
+
+        root.innerHTML = list.map((u, idx) => `
+          <div class="member-item ${state.selectedUser === u.name || (!state.selectedUser && idx === 0) ? "active" : ""}" data-name="${esc(u.name)}">
+            <div class="d-flex align-items-center gap-2 min-w-0">
+              <div class="avatar">${esc(u.name[0] || "?")}</div>
+              <div class="name-truncate">${esc(u.name)}</div>
+            </div>
+            <div class="count-pill">${fmt(u.count)}</div>
+          </div>
+        `).join("");
+
+        root.querySelectorAll(".member-item").forEach(el => {
+          el.addEventListener("click", () => selectUser(el.dataset.name));
+        });
+
+        if (!state.selectedUser && s.userList.length) {
+          selectUser(s.userList[0].name, false);
+        }
+
+        const tbody = document.getElementById("memberTable");
+
+        tbody.innerHTML = s.userList.map((u, i) => `
+          <tr>
+            <td>${i + 1}</td>
+            <td>${esc(u.name)}</td>
+            <td>${fmt(u.count)}</td>
+            <td>${pct(u.share)}</td>
+            <td>${fmt(u.avgLen, 1)}</td>
+            <td>${pct(u.stickerRate)}</td>
+            <td>${pct(u.nightRate)}</td>
+            <td>${u.avgReply == null ? "-" : fmt(u.avgReply, 1) + "分"}</td>
+            <td>${fmt(u.initiation)}</td>
+            <td>${fmt(u.thanks)}</td>
+            <td>${fmt(u.sorry)}</td>
+            <td>${fmt(u.laugh)}</td>
+            <td>${fmt(u.question)}</td>
+          </tr>
+        `).join("");
+
+        const sender = document.getElementById("senderFilter");
+
+        sender.innerHTML =
+          `<option value="">全員</option>` +
+          s.userList.map(u => `<option value="${esc(u.name)}">${esc(u.name)}</option>`).join("");
+
+        renderMemberReplyChart();
+      }
+
+      function selectUser(name, updateList = true) {
+        state.selectedUser = name;
+
+        const s = state.stats;
+        const u = s.users[name];
+
+        if (!u) return;
+
+        if (updateList) {
+          document.querySelectorAll(".member-item").forEach(el => {
+            el.classList.toggle("active", el.dataset.name === name);
+          });
+        }
+
+        const rank = s.userList.findIndex(x => x.name === name) + 1;
+
+        document.getElementById("selectedAvatar").textContent = name[0] || "?";
+        document.getElementById("selectedName").textContent = name;
+        document.getElementById("selectedRank").textContent = `発言数 ${rank}位 / ${s.userList.length}人中`;
+
+        document.getElementById("uCount").textContent = fmt(u.count);
+        document.getElementById("uAvgLen").textContent = fmt(u.avgLen, 1);
+        document.getElementById("uReply").textContent = u.avgReply == null ? "-" : fmt(u.avgReply, 1) + "分";
+        document.getElementById("uNight").textContent = pct(u.nightRate);
+
+        const speedScore = u.avgReply == null
+          ? 0
+          : Math.max(0, 100 - Math.min(100, u.avgReply / 60 * 100));
+
+        const longScore = Math.min(100, u.avgLen / 40 * 100);
+        const stickerScore = Math.min(100, u.stickerRate / 0.4 * 100);
+        const nightScore = Math.min(100, u.nightRate / 0.5 * 100);
+
+        chart("userRadarChart", {
+          type: "radar",
+          data: {
+            labels: ["発言量", "返信速度", "長文度", "スタンプ", "夜型", "会話開始"],
+            datasets: [
+              {
+                label: "特徴",
+                data: [
+                  u.activeScore,
+                  speedScore,
+                  longScore,
+                  stickerScore,
+                  nightScore,
+                  u.initiationScore
+                ]
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              r: {
+                min: 0,
+                max: 100,
+                ticks: {
+                  display: false
+                }
+              }
+            }
+          }
+        });
+
+        chart("userHourChart", {
+          type: "bar",
+          data: {
+            labels: [...Array(24)].map((_, i) => `${i}`),
+            datasets: [
+              {
+                label: "発言数",
+                data: u.hourly
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+
+        chart("userWeekdayChart", {
+          type: "bar",
+          data: {
+            labels: CONFIG.dayNames,
+            datasets: [
+              {
+                label: "発言数",
+                data: u.weekday
+              }
+            ]
+          },
+          options: {
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderMemberReplyChart() {
+        const top = state.stats.userList
+          .filter(u => u.avgReply != null)
+          .slice(0, 15)
+          .reverse();
+
+        chart("memberReplyChart", {
+          type: "bar",
+          data: {
+            labels: top.map(u => u.name),
+            datasets: [
+              {
+                label: "平均返信時間 分",
+                data: top.map(u => u.avgReply)
+              }
+            ]
+          },
+          options: {
+            indexAxis: "y",
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                display: false
+              }
+            },
+            scales: {
+              x: {
+                beginAtZero: true
+              }
+            }
+          }
+        });
+      }
+
+      function renderMessages() {
+        applyMessageFilter();
+      }
+
+      function applyMessageFilter() {
+        const q = document.getElementById("msgSearch")?.value?.toLowerCase() || "";
+        const sender = document.getElementById("senderFilter")?.value || "";
+        const from = document.getElementById("dateFrom")?.value || "";
+        const to = document.getElementById("dateTo")?.value || "";
+
+        const rows = state.messages.filter(m => {
+          if (q && !m.content.toLowerCase().includes(q) && !m.sender.toLowerCase().includes(q)) {
+            return false;
+          }
+
+          if (sender && m.sender !== sender) return false;
+          if (from && m.date < from) return false;
+          if (to && m.date > to) return false;
+
+          return true;
+        }).slice(0, 1000);
+
+        document.getElementById("messageTable").innerHTML = rows.map(m => `
+          <tr>
+            <td>${m.date} ${m.time}</td>
+            <td>${esc(m.sender)}</td>
+            <td>
+              <span class="badge text-bg-${m.type === "text" ? "secondary" : m.type === "sticker" ? "warning" : "info"}">
+                ${esc(m.type)}
+              </span>
+            </td>
+            <td style="white-space: pre-wrap; min-width: 260px; max-width: 620px;">
+              ${esc(m.content)}
+            </td>
+            <td>${esc(m.fileName)}</td>
+          </tr>
+        `).join("");
+      }
+
+      function renderFiles() {
+        document.getElementById("fileCountLabel").textContent = `${state.files.length}件`;
+
+        const list = document.getElementById("fileList");
+
+        list.innerHTML = state.files.map((f, i) => {
+          const msgCount = state.messages.filter(m => m.fileIndex === i).length;
+
+          return `
+            <div class="file-item ${i === state.selectedFileIndex ? "active" : ""}" data-index="${i}">
+              <div class="fw-bold text-truncate">${esc(f.name)}</div>
+              <div class="small-muted">${fmt(f.size)} bytes / ${fmt(msgCount)} messages</div>
+            </div>
+          `;
+        }).join("");
+
+        list.querySelectorAll(".file-item").forEach(el => {
+          el.addEventListener("click", () => {
+            state.selectedFileIndex = Number(el.dataset.index);
+            renderFiles();
+            renderRaw();
+          });
+        });
+
+        renderRaw();
+      }
+
+      function renderRaw() {
+        const f = state.files[state.selectedFileIndex];
+
+        if (!f) return;
+
+        const q = document.getElementById("rawSearch")?.value || "";
+
+        document.getElementById("rawTitle").textContent = f.name;
+
+        let raw = f.raw;
+
+        if (q) {
+          const re = new RegExp(escapeRegExp(q), "gi");
+          raw = raw.replace(re, m => `<<<${m}>>>`);
+          raw = esc(raw)
+            .replace(/&lt;&lt;&lt;/g, "<mark>")
+            .replace(/&gt;&gt;&gt;/g, "</mark>");
+
+          document.getElementById("rawViewer").innerHTML = raw;
+        } else {
+          document.getElementById("rawViewer").textContent = raw.slice(0, 1000000);
+        }
+      }
+
+      function escapeRegExp(s) {
+        return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }
+
+      function setupSearchHandlers() {
+        document.getElementById("memberSearch").oninput = e => {
+          renderMembers(e.target.value);
         };
 
-        // Event Listeners
-        els.dropZone.addEventListener('click', () => els.fileInput.click());
-        els.dropZone.addEventListener('dragover', e => { e.preventDefault(); els.dropZone.style.borderColor = '#06c755'; });
-        els.dropZone.addEventListener('dragleave', () => els.dropZone.style.borderColor = '#ccc');
-        els.dropZone.addEventListener('drop', e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); });
-        els.fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+        ["msgSearch", "senderFilter", "dateFrom", "dateTo"].forEach(id => {
+          document.getElementById(id).oninput = applyMessageFilter;
+          document.getElementById(id).onchange = applyMessageFilter;
+        });
 
-        function handleFile(file) {
-            if(!file || !file.name.endsWith('.txt')) {
-                els.errorMsg.textContent = "テキストファイル(.txt)のみ対応しています";
-                return;
+        document.getElementById("rawSearch").oninput = renderRaw;
+
+        document.getElementById("copyRawBtn").onclick = async () => {
+          const f = state.files[state.selectedFileIndex];
+
+          if (f) {
+            await navigator.clipboard.writeText(f.raw);
+          }
+        };
+
+        document.getElementById("exportJsonBtn").onclick = () => {
+          const payload = {
+            exportedAt: new Date().toISOString(),
+            summary: {
+              total: state.stats.total,
+              days: state.stats.days,
+              members: state.stats.userList.length,
+              start: dateKey(state.stats.start),
+              end: dateKey(state.stats.end)
+            },
+            members: state.stats.userList.map(u => ({
+              name: u.name,
+              count: u.count,
+              share: u.share,
+              avgLen: u.avgLen,
+              stickerRate: u.stickerRate,
+              nightRate: u.nightRate,
+              avgReply: u.avgReply,
+              medianReply: u.medianReply,
+              initiation: u.initiation,
+              thanks: u.thanks,
+              sorry: u.sorry,
+              laugh: u.laugh,
+              question: u.question
+            })),
+            messages: state.messages
+          };
+
+          const blob = new Blob(
+            [JSON.stringify(payload, null, 2)],
+            {
+              type: "application/json"
             }
-            els.loading.style.display = 'flex';
-            const reader = new FileReader();
-            reader.onload = e => {
-                setTimeout(() => {
-                    try {
-                        const parsed = parseText(e.target.result);
-                        if(parsed.length === 0) throw new Error("有効なメッセージが見つかりません");
-                        globalStats = analyze(parsed);
-                        renderDashboard(globalStats);
-                        
-                        // Transition
-                        els.uploadScreen.classList.add('loaded');
-                        els.mainDashboard.classList.add('visible');
-                    } catch(err) {
-                        els.errorMsg.textContent = "解析エラー: " + err.message;
-                        console.error(err);
-                        els.uploadScreen.classList.remove('loaded');
-                    } finally {
-                        els.loading.style.display = 'none';
-                    }
-                }, 100);
-            };
-            reader.readAsText(file);
-        }
+          );
 
-        // --- Parsing Logic ---
-        function parseText(text) {
-            const lines = text.split(/\r?\n/);
-            const data = [];
-            let date = null;
-            const datePtn = /^(\d{4})[\/\.](\d{1,2})[\/\.](\d{1,2})/; // 2023/01/01 or 2023.01.01
-            const timePtn = /^\d{1,2}:\d{2}$/;
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = "line_talk_analysis.json";
+          a.click();
 
-            lines.forEach(line => {
-                line = line.trim();
-                if(!line) return;
-                
-                const dMatch = line.match(datePtn);
-                if(dMatch) {
-                    date = `${dMatch[1]}/${dMatch[2].padStart(2,'0')}/${dMatch[3].padStart(2,'0')}`;
-                    return;
-                }
-
-                if(date) {
-                    const parts = line.split('\t'); // LINE export is tab-separated
-                    if(parts.length >= 3 && timePtn.test(parts[0])) {
-                        const sender = parts[1].trim();
-                        if(CONFIG.ignoreNames.includes(sender)) return;
-                        if(CONFIG.ignorePatterns.some(p => p.test(sender))) return;
-
-                        let content = parts.slice(2).join('\t');
-                        if(content.startsWith('"') && content.endsWith('"')) content = content.slice(1, -1);
-                        
-                        let type = 'text';
-                        if(content.includes('[スタンプ]') || content.includes('[Sticker]')) type = 'sticker';
-                        else if(['[写真]','[動画]'].some(k=>content.includes(k))) type = 'media';
-
-                        const [hh, mm] = parts[0].split(':').map(Number);
-                        data.push({
-                            date, timestamp: new Date(`${date} ${parts[0]}`),
-                            hour: hh, sender, content, type
-                        });
-                    }
-                }
-            });
-            return data;
-        }
-
-        // --- Analysis Logic (No Word Cloud) ---
-        function analyze(data) {
-            const users = {};
-            const daily = {};
-            let totalSticker = 0;
-            let lastMsg = null;
-
-            data.forEach(d => {
-                // User Stats Init
-                if(!users[d.sender]) {
-                    users[d.sender] = { 
-                        count: 0, sticker: 0, chars: 0,
-                        replyTimes: [], initiation: 0,
-                        hourly: Array(24).fill(0),
-                        thanks: 0, sorry: 0
-                    };
-                }
-                const u = users[d.sender];
-                u.count++;
-                u.hourly[d.hour]++;
-
-                if(d.type === 'sticker') {
-                    u.sticker++;
-                    totalSticker++;
-                } else if(d.type === 'text') {
-                    u.chars += d.content.length;
-                    if(CONFIG.keywords.gratitude.some(k=>d.content.includes(k))) u.thanks++;
-                    if(CONFIG.keywords.apology.some(k=>d.content.includes(k))) u.sorry++;
-                }
-
-                // Daily Stats
-                daily[d.date] = (daily[d.date] || 0) + 1;
-
-                // Reply & Initiation Analysis
-                if(lastMsg && lastMsg.sender !== d.sender) {
-                    const diffMin = (d.timestamp - lastMsg.timestamp) / (1000 * 60);
-                    if(diffMin < 720) u.replyTimes.push(diffMin); // Reply within 12h
-                    if(diffMin > 360) u.initiation++; // Gap > 6h means initiation
-                } else if(!lastMsg) {
-                    u.initiation++;
-                }
-                lastMsg = d;
-            });
-
-            // Post-Process Users
-            const userList = Object.keys(users).sort((a,b) => users[b].count - users[a].count);
-            userList.forEach(name => {
-                const u = users[name];
-                const sumReply = u.replyTimes.reduce((a,b)=>a+b,0);
-                u.avgReply = u.replyTimes.length ? (sumReply / u.replyTimes.length) : 0;
-                
-                const nightCount = u.hourly.slice(23).concat(u.hourly.slice(0,5)).reduce((a,b)=>a+b,0); // 23:00 - 04:59
-                u.nightRate = u.count ? (nightCount / u.count) : 0;
-                u.avgLen = (u.count - u.sticker) > 0 ? (u.chars / (u.count - u.sticker)) : 0;
-                u.stickerRate = u.count ? (u.sticker / u.count) : 0;
-            });
-
-            return {
-                users, userList, daily,
-                total: data.length, totalSticker,
-                start: data[0].date, end: data[data.length-1].date
-            };
-        }
-
-        // --- Rendering ---
-        function renderDashboard(data) {
-            // 1. Global Stats
-            const startD = new Date(data.start);
-            const endD = new Date(data.end);
-            const days = Math.max(1, Math.ceil((endD - startD)/(86400000)) + 1);
-
-            document.getElementById('valTotalMsg').innerText = data.total.toLocaleString();
-            document.getElementById('valPeriod').innerText = days;
-            document.getElementById('valStickerRate').innerText = ((data.totalSticker/data.total)*100).toFixed(1) + "%";
-            document.getElementById('valDailyAvg').innerText = (data.total / days).toFixed(1);
-            document.getElementById('totalMembers').innerText = data.userList.length;
-
-            // 2. Member List
-            const listEl = document.getElementById('memberList');
-            listEl.innerHTML = '';
-            data.userList.forEach((name, idx) => {
-                const u = data.users[name];
-                const item = document.createElement('div');
-                item.className = 'member-item';
-                if(idx === 0) item.classList.add('active');
-                item.onclick = () => selectUser(name, idx, item);
-                item.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <div class="rounded-circle bg-secondary text-white d-flex justify-content-center align-items-center me-2" style="width:30px; height:30px; font-size:0.8rem;">${name[0]}</div>
-                        <div class="member-name">${name}</div>
-                    </div>
-                    <div class="member-count">${u.count}</div>
-                `;
-                listEl.appendChild(item);
-            });
-
-            // 3. Initial Chart Render (Global Line)
-            renderLineChart(data.daily);
-
-            // 4. Select Top User
-            if(data.userList.length > 0) {
-                updateUserDetail(data.userList[0], 0);
-            }
-        }
-
-        function selectUser(name, idx, el) {
-            document.querySelectorAll('.member-item').forEach(e => e.classList.remove('active'));
-            el.classList.add('active');
-            updateUserDetail(name, idx);
-        }
-
-        function updateUserDetail(name, rank) {
-            const u = globalStats.users[name];
-            
-            // Text Updates
-            document.getElementById('userName').innerText = name;
-            document.getElementById('userAvatar').innerText = name[0];
-            document.getElementById('userRank').innerText = `メッセージ数順位: ${rank + 1}位`;
-            
-            document.getElementById('uMsgCount').innerText = u.count.toLocaleString();
-            document.getElementById('uStickerCount').innerText = `${u.sticker} (${(u.stickerRate*100).toFixed(1)}%)`;
-            document.getElementById('uReplyAvg').innerText = u.avgReply.toFixed(1);
-            document.getElementById('uInit').innerText = u.initiation;
-            document.getElementById('uThanks').innerText = u.thanks;
-            document.getElementById('uSorry').innerText = u.sorry;
-            
-            // Night Bar
-            const nightPct = (u.nightRate * 100).toFixed(1);
-            document.getElementById('barNight').style.width = Math.min(100, nightPct * 2) + "%"; // Scale up visual
-            document.getElementById('valNight').innerText = `${nightPct}%`;
-
-            // Radar Chart Update
-            renderRadar(u);
-        }
-
-        function renderRadar(u) {
-            const ctx = document.getElementById('radarChart').getContext('2d');
-            if(charts.radar) charts.radar.destroy();
-
-            // Normalize Metrics (0-100)
-            // Reply: Faster is better (Lower is higher score). Max assumed 60min avg.
-            const scoreSpeed = Math.max(0, 100 - (u.avgReply / 60 * 100));
-            // Night: 0% is day (0), 50% is owl (100).
-            const scoreOwl = Math.min(100, (u.nightRate / 0.5) * 100);
-            // Long: Avg len 30 chars = 100.
-            const scoreLong = Math.min(100, (u.avgLen / 30) * 100);
-            // Sticker: 50% sticker = 100.
-            const scoreSticker = Math.min(100, (u.stickerRate / 0.5) * 100);
-            // Active: Initiation count. Normalized against max initiation in group would be better, but fixed for now.
-            const scoreActive = Math.min(100, u.initiation * 2); 
-
-            charts.radar = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: ['返信速度', '夜型度', '長文度', 'スタンプ', '積極性'],
-                    datasets: [{
-                        label: '特性スコア',
-                        data: [scoreSpeed, scoreOwl, scoreLong, scoreSticker, scoreActive],
-                        backgroundColor: 'rgba(6, 199, 85, 0.2)',
-                        borderColor: '#06c755',
-                        pointBackgroundColor: '#06c755'
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    scales: {
-                        r: {
-                            min: 0, max: 100,
-                            ticks: { display: false },
-                            pointLabels: { font: { size: 12 } }
-                        }
-                    },
-                    plugins: { legend: { display: false } }
-                }
-            });
-        }
-
-        function renderLineChart(dailyData) {
-            const ctx = document.getElementById('lineChart').getContext('2d');
-            const labels = Object.keys(dailyData).sort();
-            const values = labels.map(d => dailyData[d]);
-
-            if(charts.line) charts.line.destroy();
-
-            charts.line = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'メッセージ数',
-                        data: values,
-                        borderColor: '#06c755',
-                        backgroundColor: 'rgba(6, 199, 85, 0.1)',
-                        fill: true,
-                        tension: 0.4,
-                        pointRadius: 0,
-                        borderWidth: 1.5
-                    }]
-                },
-                options: {
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { display: false },
-                        y: { beginAtZero: true, grid: { borderDash: [5, 5] } }
-                    },
-                    interaction: { mode: 'index', intersect: false }
-                }
-            });
-        }
-    </script>
+          URL.revokeObjectURL(a.href);
+        };
+      }
+    })();
+  </script>
 </body>
 </html>
